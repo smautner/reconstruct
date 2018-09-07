@@ -19,6 +19,11 @@ from scipy.stats import rankdata
 from eden.graph import Vectorizer
 
 
+from multiprocessing import Pool
+
+
+
+
 class MultiObjectiveCostEstimator(object):
     """MultiObjectiveCostEstimator."""
 
@@ -111,7 +116,26 @@ class DistRankSizeCostEstimator(MultiObjectiveCostEstimator):
         self.estimators = [d_est, b_est, s_est]
         return self
 
-class InstancesDistanceCostEstimator(object):
+import itertools
+import scipy
+class pvectorize(object):
+    def grouper(self, n, iterable):
+        it = iter(iterable)
+        while True:
+            chunk = tuple(itertools.islice(it, n))
+            if not chunk:
+                return
+            yield chunk
+
+    def vectorize(self, graphs):
+        with Pool(4) as p:
+            res = (p.map(self.vectorizer.transform, self.grouper(5000,graphs)))
+            res =  scipy.sparse.vstack(res)
+
+        return res
+
+
+class InstancesDistanceCostEstimator(pvectorize):
     """InstancesDistanceCostEstimator."""
 
     def __init__(self, vectorizer=Vectorizer()):
@@ -123,7 +147,8 @@ class InstancesDistanceCostEstimator(object):
     def fit(self, desired_distances, reference_graphs):
         """fit."""
         self.desired_distances = desired_distances
-        self.reference_vecs = self.vectorizer.transform(reference_graphs)
+        self.reference_vecs = self.vectorize(reference_graphs)
+        #self.reference_vecs = self.vectorizer.transform(reference_graphs)
         return self
 
     def _avg_distance_diff(self, vector):
@@ -135,7 +160,7 @@ class InstancesDistanceCostEstimator(object):
 
     def decision_function(self, graphs):
         """predict_distance."""
-        x = self.vectorizer.transform(graphs)
+        x = self.vectorize(graphs)
         avg_distance_diff = np.array([self._avg_distance_diff(vec)
                                       for vec in x])
         avg_distance_diff = avg_distance_diff.reshape(-1, 1)
@@ -146,7 +171,7 @@ class InstancesDistanceCostEstimator(object):
 
 
 
-class RankBiasCostEstimator(object):
+class RankBiasCostEstimator(pvectorize):
     """RankBiasCostEstimator."""
 
     def __init__(self, vectorizer, improve=True):
@@ -159,7 +184,7 @@ class RankBiasCostEstimator(object):
 
     def fit(self, ranked_graphs):
         """fit."""
-        x = self.vectorizer.transform(ranked_graphs)
+        x = self.vectorize(ranked_graphs)
         r, c = x.shape
         pos = []
         neg = []
@@ -179,7 +204,7 @@ class RankBiasCostEstimator(object):
 
     def decision_function(self, graphs):
         """decision_function."""
-        x = self.vectorizer.transform(graphs)
+        x = self.vectorize(graphs)
         scores = self.estimator.decision_function(x)
         if self.improve is False:
             scores = np.absolute(scores)

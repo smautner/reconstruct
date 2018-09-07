@@ -169,8 +169,8 @@ def test_grammar():
 
 def test_neighexpansion():
     graphs = rg.make_graphs_static(7, # how many to generate
-                                   5, # graph size
-                                   5, # node-labelcount
+                                   4, # graph size
+                                   3, # node-labelcount
                                    2, # edgelabelcount
                                    labeldistribution='uniform')
     optimizer = pareto.LocalLandmarksDistanceOptimizer()
@@ -190,19 +190,23 @@ def test_neighexpansion():
 
 def test_pareto():
     configure_logging(logging.getLogger(),verbosity=2)
-    graphs = rg.make_graphs_static(100, # how many to generate
-                                   4, # graph size
-                                   2, # node-labelcount
-                                   2, # edgelabelcount
+    graphs = rg.make_graphs_static(1000, # how many to generate
+                                   5, # graph size
+                                   5, # node-labelcount
+                                   3, # edgelabelcount
                                    labeldistribution='uniform')
 
-    im =  InstanceMaker(n_landmarks=5, n_neighbors=50).fit(graphs,ntargets=2)
+    im =  InstanceMaker(n_landmarks=10, n_neighbors=100).fit(graphs,ntargets=2)
 
     optimizer = pareto.LocalLandmarksDistanceOptimizer(n_iter=3, context_size=1)
     landmark_graphs, desired_distances, ranked_graphs, target_graph = im.get()
-    reconstructions = optimizer.optimize(landmark_graphs,desired_distances,ranked_graphs, start=[landmark_graphs[0]])
-    print("resulting set:")
-    so.gprint(reconstructions, edgelabel='label')
+    NONE = optimizer.optimize(landmark_graphs,
+                              desired_distances,
+                              ranked_graphs,
+                              start_graph_list=[landmark_graphs[0]])
+    #NONE = optimizer.optimize(landmark_graphs, desired_distances, ranked_graphs, start_graph_list=landmark_graphs)
+    #print("resulting set:")
+    #so.gprint(reconstructions, edgelabel='label')
     return  None
     #return get_best_distance(reconstructions, target_graph)
 
