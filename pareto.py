@@ -238,6 +238,10 @@ class MYOPTIMIZER(object):
                                          concat,
                                          map(self._get_neighbors))
 
+    def checkfinished(self,costs,graphs):
+        if min(costs[:,0]) == 0:
+            print(graphs[np.argmin(costs[:,0])].graph['history'])
+            exit()
     @timeit
     def optimize(self, graphs):
         """Optimize iteratively."""
@@ -255,14 +259,13 @@ class MYOPTIMIZER(object):
 
 
         logger.debug("DONE")
-        self.get_costs(graphs)
+        costs = self.get_costs(graphs)
+        self.checkfinished(costs, graphs)
 
     def optimize_step(self, graphs):
         # filter, expand, chk duplicates
         costs = self.get_costs(graphs)
-        if min(costs[:,0]) == 0:
-            print(graphs[np.argmin(costs[:,0])].graph['history'])
-            exit()
+        self.checkfinished(costs, graphs)
         graphs = self.filter_by_cost(costs, graphs)
         graphs = self._expand_neighbors(graphs)
         graphs = self.duplicate_rm(graphs)
@@ -274,8 +277,8 @@ class MYOPTIMIZER(object):
             logger.debug('cost_filter: keep all %d graphs' % in_count)
             return graphs
         costs_ranked = np.argsort(costs,axis=0) # column wise rank
-        best_scores = np.sum( costs_ranked < 10, axis=1) # we should keep a graph if its in the top 15 in any category
-        for g,scores in zip(graphs,costs_ranked < 10 ):
+        best_scores = np.sum( costs_ranked < 15, axis=1) # we should keep a graph if its in the top 15 in any category
+        for g,scores in zip(graphs,costs_ranked < 15 ):
             g.graph['history'].append(scores)
         res = [g for g,good_if_true in zip(graphs,best_scores) if good_if_true > 0] # select the graphs
 
@@ -314,7 +317,7 @@ class MYOPTIMIZER(object):
     def _get_neighbors(self, graph):
         neighs = list(self.grammar.neighbors(graph))
         for n in neighs:
-            n.graph['history']= graph.graph['history']
+            n.graph['history']= graph.graph['history'].copy()
         return neighs
 
 
