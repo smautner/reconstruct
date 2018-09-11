@@ -159,10 +159,11 @@ def test_grammar():
     print(optimizer.grammar)
     keys = list(optimizer.grammar.productions.keys())
     random.shuffle(keys)
+    print ("start w grammar")
     for k in  keys[:10]:
         cips = list(optimizer.grammar.productions[k].values())
-        so.gprint([c.graph for c in cips])
-        so.graph.ginfo(cips[0].graph)
+        so.gprint([c.graph for c in cips], color=[[c.core_nodes,c.interface_nodes] for c in cips])
+        #so.graph.ginfo(cips[0].graph)
         print(cips[0].__dict__)
 
 
