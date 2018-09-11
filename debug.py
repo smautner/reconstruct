@@ -194,16 +194,18 @@ def test_pareto():
                                    5, # graph size
                                    4, # node-labelcount
                                    2, # edgelabelcount
-                                   labeldistribution='uniform')
+                                   labeldistribution='uniform',
+                                   allow_cycles=False)
 
     im =  InstanceMaker(n_landmarks=5, n_neighbors=50).fit(graphs,ntargets=2)
 
-    optimizer = pareto.LocalLandmarksDistanceOptimizer(n_iter=5, context_size=1)
+    optimizer = pareto.LocalLandmarksDistanceOptimizer(n_iter=7, context_size=1)
     landmark_graphs, desired_distances, ranked_graphs, target_graph = im.get()
     NONE = optimizer.optimize(landmark_graphs,
                               desired_distances,
                               ranked_graphs,
-                              start_graph_list=[landmark_graphs[0]])
+                              #start_graph_list=[landmark_graphs[0]])
+                              start_graph_list=landmark_graphs)
     #NONE = optimizer.optimize(landmark_graphs, desired_distances, ranked_graphs, start_graph_list=landmark_graphs)
     #print("resulting set:")
     #so.gprint(reconstructions, edgelabel='label')

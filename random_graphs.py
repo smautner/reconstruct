@@ -4,7 +4,7 @@ import networkx as nx
 import eden.graph as edeng
 import random
 
-def make_random_graph(numnodes=(5,5), numedges = (5,5), maxdegree=3):
+def make_random_graph(numnodes=(5,5), numedges = (5,5), maxdegree=3, allow_cycles=True):
 
     numnodes = random.randint(*numnodes)
     numedges = random.randint(max(numnodes-1, numedges[0]), max(numnodes-1, numedges[1]))
@@ -20,7 +20,8 @@ def make_random_graph(numnodes=(5,5), numedges = (5,5), maxdegree=3):
         active_nodes.append(end)
         g.add_edge(start,end)
         numedges -=1 
-    
+    if not allow_cycles:
+        return g
     # first lets see what the feasible nodes are: 
     active_nodes = [x for x in active_nodes if g.degree(x) < maxdegree]
 
@@ -94,11 +95,11 @@ def make_graphs_real(n, nlabels, elabels, maxdegree):
 def add_labels_preset(g, nodelabels, edgelabels):
     random.shuffle(nodelabels)
     for nodelabel, (n,d) in zip(nodelabels, g.nodes(data=True)):
-        d['label'] = hex(nodelabel)[2:]
+        d['label'] = str(nodelabel)#hex(nodelabel)[2:]
 
     random.shuffle(edgelabels)
     for edgelabel, (a,b,d) in zip(edgelabels,g.edges(data=True)):
-        d['label'] = hex(edgelabel)[2:]+"_"
+        d['label'] = chr(edgelabel+96)#hex(edgelabel)[2:]+"_"
     return g
 
 
@@ -109,7 +110,7 @@ real_graph_nodelabeldistribution =np.array([54659, 49901, 42444, 37924, 33794, 3
 real_graph_edgelabeldistribution = np.array([141664, 67965, 49459, 41601, 26547, 23866, 15389, 13383, 10535, 7796, 5407, 5336, 4827, 4563, 3633, 2957, 2121, 1970, 1858, 1593, 1562, 1261, 1117, 1114, 1076, 1042, 914, 744, 684, 678, 643, 640, 610, 550, 501, 482, 446, 419, 379, 335, 330, 312, 266, 256, 245, 223, 138, 126, 34, 20],dtype='f')
 
 
-def make_graph_strict(nodes, nlabels, elabels, maxdegree=3, dist = 'real'):
+def make_graph_strict(nodes, nlabels, elabels, maxdegree=3, dist = 'real', allow_cycles=True):
     edges =  edgedis_3deg(nodes) 
 
     def makestat(numlab,repeats, dist):
@@ -128,16 +129,16 @@ def make_graph_strict(nodes, nlabels, elabels, maxdegree=3, dist = 'real'):
     getlab = lambda stats: [i+1 for i,e in enumerate(stats.rvs()[0]) for z in range(e) ]
             
     # DO STH WITH WITH LABELZ
-    return add_labels_preset( make_random_graph( (nodes,nodes),(edges,edges), maxdegree) , getlab(node_stats),getlab(edge_stats) ) 
+    return add_labels_preset( make_random_graph( (nodes,nodes),(edges,edges), maxdegree, allow_cycles=allow_cycles) , getlab(node_stats),getlab(edge_stats) ) 
 
 import graphlearn3.lsgg_cip as glcip
 from structout import gprint
-def make_graphs_static(n,ncnt,nlab,elab,maxdeg=3, labeldistribution='real'):
+def make_graphs_static(n,ncnt,nlab,elab,maxdeg=3, labeldistribution='real', allow_cycles=True):
     l = []
     seen = {}
     failcount = 0
     while len(l)< n:
-        g= make_graph_strict(ncnt, nlab,elab,maxdeg, dist=labeldistribution)
+        g= make_graph_strict(ncnt, nlab,elab,maxdeg, dist=labeldistribution, allow_cycles=allow_cycles)
         harsch = glcip.graph_hash(edeng._edge_to_vertex_transform(g.copy()),2**20-1,node_name_label=lambda id,node:hash(node['label']))
         if harsch not in seen:
             seen[harsch] = 1

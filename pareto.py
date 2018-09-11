@@ -1,4 +1,5 @@
 import logging
+import time
 import traceback
 import random
 from itertools import islice
@@ -192,9 +193,10 @@ class ParetoGraphOptimizer(object):
 
 import eden.graph
 import itertools
-from multiprocessing import Pool
+import multiprocessing
 import scipy
 
+import graphlearn3.lsgg_cip as glcip
 class hashvec(object):
 
     def __init__(self, vectorizer):
@@ -212,12 +214,16 @@ class hashvec(object):
         feature_dicts = [ self.vectorizer._transform(graph) for graph in chunk]
         hashed_features = [ hash(tuple(sorted(fd.keys()))) for fd in feature_dicts]
         return hashed_features
+    
+    def vectorize_chunk_glhash(self,chunk):
+        return [glcip.graph_hash(eden.graph._edge_to_vertex_transform(g),2**20-1,node_name_label=lambda id,node:hash(node['label'])) for g in chunk]
 
     def vectorize(self, graphs):
-        with Pool(4) as p:
-            res = (p.map(self.vectorize_chunk, self.grouper(5000,graphs)))
-
+        
+        with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+            res = (p.map(self.vectorize_chunk, self.grouper(1000,graphs)))
         return itertools.chain.from_iterable(res)
+
 
 class MYOPTIMIZER(object):
     """ParetoGraphOptimizer."""
@@ -238,7 +244,10 @@ class MYOPTIMIZER(object):
                                          concat,
                                          map(self._get_neighbors))
 
-    def checkfinished(self,costs,graphs):
+    def checkstatus(self,costs,graphs):
+        g = [graphs[e] for e in np.argmax(costs,axis=0)]
+        #logger.debug([len(e)for e in g])
+        logger.debug(so.graph.make_picture(g,edgelabel='label',size=10))
         if min(costs[:,0]) == 0:
             print(graphs[np.argmin(costs[:,0])].graph['history'])
             exit()
@@ -260,35 +269,38 @@ class MYOPTIMIZER(object):
 
         logger.debug("DONE")
         costs = self.get_costs(graphs)
-        self.checkfinished(costs, graphs)
+        self.checkstatus(costs, graphs)
 
     def optimize_step(self, graphs):
         # filter, expand, chk duplicates
+        logger.debug("++++++++  NEW OPTI ROUND +++++++")
         costs = self.get_costs(graphs)
-        self.checkfinished(costs, graphs)
+        self.checkstatus(costs, graphs)
         graphs = self.filter_by_cost(costs, graphs)
         graphs = self._expand_neighbors(graphs)
         graphs = self.duplicate_rm(graphs)
         return graphs
 
     def filter_by_cost(self,costs,graphs):
+        timenow=time.time()
         in_count = len(graphs)
         if in_count< 40:
             logger.debug('cost_filter: keep all %d graphs' % in_count)
             return graphs
         costs_ranked = np.argsort(costs,axis=0) # column wise rank
-        best_scores = np.sum( costs_ranked < 15, axis=1) # we should keep a graph if its in the top 15 in any category
-        for g,scores in zip(graphs,costs_ranked < 15 ):
+        best_scores = np.sum( costs_ranked < 70, axis=1) # make 0/1 matrix of where 1 = graph who has an ok rank
+        for g,scores in zip(graphs,costs_ranked < 70 ):
             g.graph['history'].append(scores)
-        res = [g for g,good_if_true in zip(graphs,best_scores) if good_if_true > 0] # select the graphs
+        res = [g for g,good_if_true in zip(graphs,best_scores) if good_if_true > 1] # select the graphs
 
-        logger.debug('cost_filter: got %d graphs, reduced to %d'%(in_count,len(res)))
+        logger.debug('cost_filter: got %d graphs, reduced to %d (%.2fs)'%(in_count,len(res),time.time()-timenow))
         return res
 
     def duplicate_rm(self,graphs):
+        timenow=time.time()
         count = len(graphs)
         graphs  = list(self._duplicate_rm(graphs))
-        logger.debug("duplicate_rm: %d -> %d graphs" % (count, len(graphs)))
+        logger.debug("duplicate_rm: %d -> %d graphs (%.2fs)" % (count, len(graphs), time.time()-timenow))
         return graphs
 
     def _duplicate_rm(self,graphs):
@@ -301,13 +313,14 @@ class MYOPTIMIZER(object):
 
 
     def get_costs(self, graphs):
+        timenow=time.time()
         costs = self.multiobj_est.decision_function(graphs)
         if costs.shape[0] < 40:
             return costs
         costs_partitioned = np.partition(costs, -10, axis=0)  # find the 10th largest value column wise
         normalized_costs = costs / costs_partitioned[-10,:]  # divide by that
         costs = np.hstack((costs, np.sum(normalized_costs, axis=1).reshape(-1,1)))
-        logger.debug("costs: best dist: %f" %  np.min(costs[:,0]) )
+        logger.debug("costs: best dist: %f (%.2fs)" %  (np.min(costs[:,0]) ,time.time()-timenow))
 
         return costs
 
@@ -343,9 +356,9 @@ class LocalLandmarksDistanceOptimizer(object):
         self.expand_max_frontier = expand_max_frontier
         self.max_size_frontier = max_size_frontier
         self.output_k_best = output_k_best
-        self.grammar = lsgg(cip_root_all=True, half_step_distance=True)
+        self.grammar = lsgg(cip_root_all=False, half_step_distance=True)
         self.grammar.set_core_size([0, 1, 2])
-        self.grammar.set_context([1, 2])
+        self.grammar.set_context([1])
         self.grammar.set_context(context_size)
         self.grammar.set_min_count(min_count)
         self.multiobj_est = costs.DistRankSizeCostEstimator(r=r, d=d)

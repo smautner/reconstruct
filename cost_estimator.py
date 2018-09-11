@@ -19,7 +19,7 @@ from scipy.stats import rankdata
 from eden.graph import Vectorizer
 
 
-from multiprocessing import Pool
+import multiprocessing
 
 
 
@@ -126,10 +126,9 @@ class pvectorize(object):
             if not chunk:
                 return
             yield chunk
-
     def vectorize(self, graphs):
-        with Pool(4) as p:
-            res = (p.map(self.vectorizer.transform, self.grouper(5000,graphs)))
+        with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+            res = (p.map(self.vectorizer.transform, self.grouper(1000,graphs)))
             res =  scipy.sparse.vstack(res)
 
         return res
