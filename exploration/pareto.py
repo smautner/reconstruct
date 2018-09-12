@@ -189,10 +189,13 @@ import itertools
 import multiprocessing
 
 import graphlearn3.lsgg_cip as glcip
+
 class hashvec(object):
 
-    def __init__(self, vectorizer):
+    def __init__(self, vectorizer, multiproc = True):
         self.vectorizer = vectorizer
+        self.multiproc = multiproc
+
 
     def grouper(self, n, iterable):
         it = iter(iterable)
@@ -210,12 +213,16 @@ class hashvec(object):
     def vectorize_chunk_glhash(self,chunk):
         return [glcip.graph_hash(eden.graph._edge_to_vertex_transform(g),2**20-1,node_name_label=lambda id,node:hash(node['label'])) for g in chunk]
 
-    def vectorize(self, graphs):
-        
+    def vectorize_multiproc(self, graphs):
         with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
             res = (p.map(self.vectorize_chunk, self.grouper(1000,graphs)))
         return itertools.chain.from_iterable(res)
 
+    def vectorize(self,graphs):
+        if self.multiproc:
+            return self.vectorize_multiproc(graphs)
+        else:
+            return self.vectorize_chunk(graphs)
 
 class MYOPTIMIZER(object):
     """ParetoGraphOptimizer."""
@@ -225,13 +232,13 @@ class MYOPTIMIZER(object):
             grammar=None,
             multiobj_est=None,
             n_iter=19,
-            random_state=1):
+            random_state=1,multiproc=True):
         """init."""
         self.grammar = grammar
         self.multiobj_est = multiobj_est
         self.n_iter = n_iter
         random.seed(random_state)
-        self.hash_vectorizer = hashvec(eden.graph.Vectorizer(normalization=False,r=2,d=2))
+        self.hash_vectorizer = hashvec(eden.graph.Vectorizer(normalization=False,r=2,d=2),multiproc=multiproc)
         self._expand_neighbors = compose(list,
                                          concat,
                                          map(self._get_neighbors))
@@ -345,7 +352,7 @@ class LocalLandmarksDistanceOptimizer(object):
             n_iter=2,
             expand_max_frontier=1000,
             output_k_best=None,
-            adapt_grammar_n_iter=None):
+            adapt_grammar_n_iter=None, multiproc=False):
         """init."""
         self.adapt_grammar_n_iter = adapt_grammar_n_iter
         self.expand_max_n_neighbors = expand_max_n_neighbors
@@ -358,7 +365,8 @@ class LocalLandmarksDistanceOptimizer(object):
         self.grammar.set_context([1])
         self.grammar.set_context(context_size)
         self.grammar.set_min_count(min_count)
-        self.multiobj_est = costs.DistRankSizeCostEstimator(r=r, d=d)
+        self.multiobj_est = costs.DistRankSizeCostEstimator(r=r, d=d, multiproc=multiproc)
+        self.multiproc=multiproc
 
     def fit(self):
         """fit."""
@@ -406,7 +414,8 @@ class LocalLandmarksDistanceOptimizer(object):
         pgo = MYOPTIMIZER(
             grammar=self.grammar,
             multiobj_est=self.multiobj_est,
-            n_iter=self.n_iter)
+            n_iter=self.n_iter,
+            multiproc=self.multiproc)
 
         if not start_graph_list:
             res = pgo.optimize(reference_graphs + ranked_graphs)

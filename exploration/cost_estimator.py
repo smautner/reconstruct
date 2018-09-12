@@ -89,13 +89,14 @@ class MultiObjectiveCostEstimator(object):
 class DistRankSizeCostEstimator(MultiObjectiveCostEstimator):
     """DistRankSizeCostEstimator."""
 
-    def __init__(self, r=3, d=3):
+    def __init__(self, r=3, d=3, multiproc=False):
         """Initialize."""
         self.vec = Vectorizer(
             r=r,
             d=d,
             normalization=False,
             inner_normalization=False)
+        self.multiproc = multiproc
 
     @timeit
     def fit(
@@ -104,10 +105,10 @@ class DistRankSizeCostEstimator(MultiObjectiveCostEstimator):
             reference_graphs,
             ranked_graphs):
         """fit."""
-        d_est = InstancesDistanceCostEstimator(self.vec)
+        d_est = InstancesDistanceCostEstimator(self.vec, multiproc=self.multiproc)
         d_est.fit(desired_distances, reference_graphs)
 
-        b_est = RankBiasCostEstimator(self.vec, improve=True)
+        b_est = RankBiasCostEstimator(self.vec, improve=True, multiproc = self.multiproc)
         b_est.fit(ranked_graphs)
 
         s_est = SizeCostEstimator()
@@ -118,6 +119,7 @@ class DistRankSizeCostEstimator(MultiObjectiveCostEstimator):
 
 import itertools
 import scipy
+
 class pvectorize(object):
     def grouper(self, n, iterable):
         it = iter(iterable)
@@ -126,22 +128,29 @@ class pvectorize(object):
             if not chunk:
                 return
             yield chunk
-    def vectorize(self, graphs):
+
+    def vectorize_mp(self, graphs):
         with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
             res = (p.map(self.vectorizer.transform, self.grouper(1000,graphs)))
             res =  scipy.sparse.vstack(res)
-
         return res
+
+    def vectorize(self,graphs):
+        if self.multiproc:
+            return self.vectorize_mp(graphs)
+        else:
+            return self.vectorizer.transform(graphs)
 
 
 class InstancesDistanceCostEstimator(pvectorize):
     """InstancesDistanceCostEstimator."""
 
-    def __init__(self, vectorizer=Vectorizer()):
+    def __init__(self, vectorizer=Vectorizer(), multiproc=False):
         """init."""
         self.desired_distances = None
         self.reference_vecs = None
         self.vectorizer = vectorizer
+        self.multiproc= multiproc
 
     def fit(self, desired_distances, reference_graphs):
         """fit."""
@@ -173,8 +182,9 @@ class InstancesDistanceCostEstimator(pvectorize):
 class RankBiasCostEstimator(pvectorize):
     """RankBiasCostEstimator."""
 
-    def __init__(self, vectorizer, improve=True):
+    def __init__(self, vectorizer, improve=True, multiproc=False):
         """init."""
+        self.multiproc=multiproc
         self.vectorizer = vectorizer
         self.estimator = SGDClassifier(average=True,
                                        class_weight='balanced',

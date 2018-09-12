@@ -156,7 +156,7 @@ def test_pareto():
 
     im =  InstanceMaker(n_landmarks=5, n_neighbors=50).fit(graphs,ntargets=2)
 
-    optimizer = pareto.LocalLandmarksDistanceOptimizer(n_iter=7, context_size=1)
+    optimizer = pareto.LocalLandmarksDistanceOptimizer(n_iter=7, context_size=1,multiproc=True)
     landmark_graphs, desired_distances, ranked_graphs, target_graph = im.get()
     NONE = optimizer.optimize(landmark_graphs,
                               desired_distances,
