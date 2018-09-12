@@ -1,26 +1,14 @@
 from util import random_graphs as rg
 import os
 import sys
-from sklearn.neighbors import NearestNeighbors
 
 from util.util import jdumpfile, jloadfile, InstanceMaker
 ####################
 # run and get best result
 ###################
-from eden.graph import Vectorizer
 from exploration import pareto
 
 
-def get_best_distance(pareto_set_graphs, target_graph):
-    vec = Vectorizer(r=3, d=6,normalization=False, inner_normalization=False)
-    pareto_set_vecs = vec.transform(pareto_set_graphs)
-    #nn = NearestNeighbors(n_neighbors=len(pareto_set_graphs)).fit(pareto_set_vecs) 
-    nn = NearestNeighbors(n_neighbors=1).fit(pareto_set_vecs)  # 1 is enough!
-    reference_vec = vec.transform([target_graph])
-    distances, neighbors = nn.kneighbors(reference_vec,return_distance=True)
-    distances = distances[0]
-    neighbors = neighbors[0]
-    return min(distances)
 
 
 def reconstruct_and_evaluate(target_graph,
@@ -29,10 +17,10 @@ def reconstruct_and_evaluate(target_graph,
                                 ranked_graphs,
                                 args):
     optimizer = pareto.LocalLandmarksDistanceOptimizer(**args)
-    reconstructions = optimizer.optimize(landmark_graphs,desired_distances,ranked_graphs)
+    res = optimizer.optimize(landmark_graphs,desired_distances,ranked_graphs)
 
 
-    return get_best_distance(reconstructions, target_graph)
+    return res
    
 
 

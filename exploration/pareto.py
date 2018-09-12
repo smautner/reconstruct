@@ -242,7 +242,9 @@ class MYOPTIMIZER(object):
         logger.debug(so.graph.make_picture(g,edgelabel='label',size=10))
         if min(costs[:,0]) == 0:
             print(graphs[np.argmin(costs[:,0])].graph['history'])
-            exit()
+            return True
+        return False
+
     @timeit
     def optimize(self, graphs):
         """Optimize iteratively."""
@@ -256,22 +258,25 @@ class MYOPTIMIZER(object):
 
         # main cycle
         for i in range(self.n_iter):
-            graphs = self.optimize_step(graphs)
+            graphs, status= self.optimize_step(graphs)
+            if status:
+                return True
+            if not graphs:
+                logger.debug("ran out of graphs")
+                return False
 
-
-        logger.debug("DONE")
         costs = self.get_costs(graphs)
-        self.checkstatus(costs, graphs)
+        return self.checkstatus(costs, graphs)
 
     def optimize_step(self, graphs):
         # filter, expand, chk duplicates
         logger.debug("++++++++  NEW OPTI ROUND +++++++")
         costs = self.get_costs(graphs)
-        self.checkstatus(costs, graphs)
+        status = self.checkstatus(costs, graphs)
         graphs = self.filter_by_cost(costs, graphs)
         graphs = self._expand_neighbors(graphs)
         graphs = self.duplicate_rm(graphs)
-        return graphs
+        return graphs, status
 
     def filter_by_cost(self,costs,graphs):
         timenow=time.time()
@@ -404,19 +409,10 @@ class LocalLandmarksDistanceOptimizer(object):
             n_iter=self.n_iter)
 
         if not start_graph_list:
-            graphs = pgo.optimize(reference_graphs + ranked_graphs)
+            res = pgo.optimize(reference_graphs + ranked_graphs)
         else:
-            graphs = pgo.optimize(start_graph_list)
-
-        if self.output_k_best is None:
-            return graphs
-        else:
-            # output a selection of the Pareto set
-            return self.multiobj_est.select(
-                graphs,
-                k_best=self.output_k_best,
-                objective=0)
-
+            res = pgo.optimize(start_graph_list)
+        return res
 
 # USAGE:
 '''
