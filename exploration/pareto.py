@@ -1,26 +1,19 @@
 import logging
 import time
-import traceback
 import random
-from itertools import islice
 
 import numpy as np
 from eden.util import timeit
 from graphlearn3.lsgg import lsgg
-import graphlearn3.util as util
 from toolz.curried import compose, map, concat
-from toolz.itertoolz import iterate, last
 
-from pareto_funcs import _manage_int_or_float
+from exploration.pareto_funcs import _manage_int_or_float
 
 logger = logging.getLogger(__name__)
 
-import lsggscramble
 import structout as so
-import cost_estimator as costs
-import pareto_funcs as paretof
+from exploration import pareto_funcs as paretof, cost_estimator as costs
 
-from cost_estimator import pvectorize
 
 class ParetoGraphOptimizer(object):
     """ParetoGraphOptimizer."""
@@ -194,7 +187,6 @@ class ParetoGraphOptimizer(object):
 import eden.graph
 import itertools
 import multiprocessing
-import scipy
 
 import graphlearn3.lsgg_cip as glcip
 class hashvec(object):
