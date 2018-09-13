@@ -32,8 +32,11 @@ class InstanceMaker(object):
         return self
 
 
-    def get(self):
-        target_graph = self.targets.pop()
+    def get(self, idd=-1):
+        if idd == -1:
+            target_graph = self.targets.pop()
+        else:
+            target_graph = self.targets[idd]
         target_vec = self.vec.transform([target_graph])
         distances, neighbors = self.nn.kneighbors(target_vec, return_distance=True)
         distances = distances[0]
@@ -42,6 +45,6 @@ class InstanceMaker(object):
         landmark_graphs = ranked_graphs[:self.n_landmarks]
         desired_distances = distances[:self.n_landmarks]
 
-        print ("target and nn")
+        logger.debug ("target and nn")
         so.gprint([target_graph, ranked_graphs[0]], edgelabel='label')
         return landmark_graphs, desired_distances, ranked_graphs, target_graph

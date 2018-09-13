@@ -2,13 +2,78 @@ from util import random_graphs as rg
 import os
 import sys
 
-from util.util import jdumpfile, jloadfile, InstanceMaker
+from util.util import jdumpfile, jloadfile, InstanceMaker, dumpfile, loadfile
 ####################
 # run and get best result
 ###################
 from exploration import pareto
 
 
+#echo -e  (seq 10)" "(seq 10)"\n" | parallel                09-13-1154
+
+
+
+
+from eden.util import configure_logging
+import logging
+configure_logging(logging.getLogger(),verbosity=2)
+
+
+
+
+# 1. param dict
+
+params_graphs = {
+    'keyorder' :  ["number_of_graphs", "size_of_graphs","node_labels","edge_labels"],
+    'number_of_graphs' : [110,510],
+    'size_of_graphs' :[5,10] ,
+    'node_labels' : [5,10],
+    'edge_labels' : [5,10]
+}
+
+# 2. function paramdict to tasks
+
+def maketasks(params):
+    # want a list
+    combolist =[[]]
+    for key in params['keyorder']:
+        combolist = [  e+[value] for value in params[key]  for e in combolist ]
+
+    return  [ {k:v for k,v in zip(params['keyorder'],configuration)} for configuration in combolist ]
+
+tasklist  = maketasks(params_graphs )
+
+
+# 3. loop over tasks
+
+def make_task_file():
+    dumpfile([ rg.make_graphs_static(maxdeg=3,
+                                     allow_cycles=False,
+                                     labeldistribution='uniform',
+                                     **args) for args in tasklist], ".tasks")
+
+
+
+
+
+
+
+# call with reconstruct.py TASKID  REPEATID
+
+
+params_insta= {
+    'keyorder' :  ["n_landmarks", "n_neighbors"],
+    'n_landmarks' : [5,10],
+    'n_neighbors' :[25,50]
+}
+instancemakerparams = maketasks(params_insta)
+
+params_opt = {
+    'keyorder' :  ["half_step_distance"],
+    "half_step_distance" : [True, False]
+}
+
+Optimizerparams = maketasks(params_opt)
 
 
 def reconstruct_and_evaluate(target_graph,
@@ -18,92 +83,69 @@ def reconstruct_and_evaluate(target_graph,
                                 args):
     optimizer = pareto.LocalLandmarksDistanceOptimizer(**args)
     res = optimizer.optimize(landmark_graphs,desired_distances,ranked_graphs)
-
-
     return res
-   
-
-
-
-
-####################
-# run
-#################
-
-
-
-max_size_frontier=None
-args = dict(
-    r=3,d=6,
-    min_count=1, # grammar mincount
-    context_size=1, # grammar context size
-    expand_max_n_neighbors=None,
-    n_iter=500,  
-    expand_max_frontier= -1, # max_size_frontier*5, # -1 or 0 might work.. 
-    max_size_frontier=max_size_frontier, 
-    adapt_grammar_n_iter=None)
-
-n_neighbors =  20
-
-graphsize = 5
-graphcount = 60 # ?? wat
-nlabel = 10
-elabel = 5
-maxdeg = 3
-n_exps = 1
-
-labeldistribution= 'uniform' # uniform or real
-problems = [ (gct,gsi,nlabel,elabel) 
-                                     for gct in [100,500]  # graphs
-                                     for gsi in [5]             # graphsize
-                                     for nlabel in [3,10,15]    # number of node labels?
-                                     for elabel in [3]          # number of edgelabels
-                                     ]
 
 
 if __name__=="__main__":
-    
+
     resu=[]
-    graphcount, graphsize,nlabel,elabel = problems[int(sys.argv[1])]
-    FNAME= "%d_%d_%d_%d" % (graphcount,graphsize,nlabel,elabel)
-
-    graphs = rg.make_graphs_static(graphcount+n_exps,graphsize,nlabel,elabel,labeldistribution=labeldistribution)
-    im =  InstanceMaker(n_landmarks=max_size_frontier, n_neighbors=n_neighbors).fit(graphs, n_exps)
-    for i in range(n_exps):
-        res = im.get()
-        landmark_graphs, desired_distances, ranked_graphs, target_graph = res
-        resu.append(reconstruct_and_evaluate( target_graph, landmark_graphs, desired_distances, ranked_graphs, args))
+    task = loadfile(".tasks")
 
 
-    jdumpfile(resu, "EXPL/" + FNAME)   #!!!
+    task_id = task[int(sys.argv[1])] # 16
+    graphs = task [task_id]
+
+    im_param_id= int(sys.argv[2]) # 4
+    im_params = instancemakerparams[im_param_id]
+
+
+    optimizer_para_id = int(sys.argv[3]) # 2
+    optimizerargs = Optimizerparams[optimizer_para_id]
+
+    run_id = int(sys.argv[4]) # 10
+
+    im =  InstanceMaker(**im_params).fit(graphs, 10)
+
+    res = im.get(run_id)
+    landmark_graphs, desired_distances, ranked_graphs, target_graph = res
+    result = reconstruct_and_evaluate( target_graph, landmark_graphs, desired_distances, ranked_graphs, **optimizerargs)
+
+
+    dumpfile(result, "EXPL/%d_%d_%d_%d" % (task_id, im_param_id, optimizer_para_id, run_id))   #!!!
 
 
 
 #######################################
-# Report 
+# Report
 #########################
 
 
 from collections import defaultdict
 import pandas
-def getvalue(a,b,c,d):
-    fname = "EXPL/%d_%d_%d_%d" % (a,b,c,d)
-    if os.path.isfile(fname):
-        res = jloadfile(fname)
-        #return np.mean(np.array(loadfile("EXPL/%d_%d_%d_%d" % (a,b,c,d))))
 
-        return sum([1 for e in res if e < 0.01])
-    else:
-        return None
-    #return np.mean(np.array(loadfile("EXPL/%d_%d_%d_%d" % (a,b,c,d))))
 
+def getvalue(a,b,c):
+    completed = 0
+    success = 0
+    for task in range(10):
+        fname = ".res/%d_%d_%d_%d" % (a,b,c,task)
+        if os.path.isfile(fname):
+            completed +=1
+            success += loadfile(fname)
+    return success, completed
 
 def report():
     dat= defaultdict(dict)
-    for a,b,c,d in problems:
-        dat[(a,b)][(c,d)] = getvalue(a,b,c,d)
-    print("labeldistr", labeldistribution)
+
+    for a in range(len(tasklist)):
+        for b in range(len(instancemakerparams)):
+            for c in range(len(Optimizerparams)):
+                dat[a][(b,c)] = getvalue(a,b,c,d)
     return pandas.DataFrame(dat)
+
+
+
+
 
 
 

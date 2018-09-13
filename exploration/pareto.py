@@ -345,7 +345,8 @@ class LocalLandmarksDistanceOptimizer(object):
             self,
             r=3,
             d=3,
-            context_size=2,
+            half_step_distance=False,
+            context_size=1,
             min_count=1,
             expand_max_n_neighbors=None,
             max_size_frontier=None,
@@ -360,11 +361,13 @@ class LocalLandmarksDistanceOptimizer(object):
         self.expand_max_frontier = expand_max_frontier
         self.max_size_frontier = max_size_frontier
         self.output_k_best = output_k_best
-        self.grammar = lsgg(cip_root_all=False, half_step_distance=True)
+        self.grammar = lsgg(cip_root_all=False, half_step_distance=half_step_distance)
         self.grammar.set_core_size([0, 1, 2])
-        self.grammar.set_context([1])
+        if half_step_distance:
+            self.grammar.set_core_size([0, 1, 2,3,4])
         self.grammar.set_context(context_size)
-        self.grammar.set_min_count(min_count)
+        #self.grammar.set_min_count(min_count) interfacecount 1 makes no sense
+        self.grammar.filter_args['min_cip_count'] = min_count
         self.multiobj_est = costs.DistRankSizeCostEstimator(r=r, d=d, multiproc=multiproc)
         self.multiproc=multiproc
 
