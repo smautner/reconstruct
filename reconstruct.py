@@ -1,8 +1,12 @@
 from util import random_graphs as rg
+from collections import defaultdict
+import pandas
 import os
 import sys
 
 from util.util import jdumpfile, jloadfile, InstanceMaker, dumpfile, loadfile
+
+#echo -e (seq 0 15)" "(seq 0 3)" "(seq 0 1)" "(seq 0 9)"\n" | parallel --bar --results .log -j 15 python3 reconstruct.py 
 ####################
 # run and get best result
 ###################
@@ -80,7 +84,7 @@ def reconstruct_and_evaluate(target_graph,
                                 landmark_graphs,
                                 desired_distances,
                                 ranked_graphs,
-                                args):
+                                **args):
     optimizer = pareto.LocalLandmarksDistanceOptimizer(**args)
     res = optimizer.optimize(landmark_graphs,desired_distances,ranked_graphs)
     return res
@@ -88,21 +92,29 @@ def reconstruct_and_evaluate(target_graph,
 
 if __name__=="__main__":
 
+    if len(sys.argv)==1:
+        print("writing task file...")
+        make_task_file()
+        exit()
+    else:
+        args = list(map(int, sys.argv[-1].strip().split(" ")))
+
+
     resu=[]
     task = loadfile(".tasks")
 
 
-    task_id = task[int(sys.argv[1])] # 16
+    task_id = args[0] # 16
     graphs = task [task_id]
 
-    im_param_id= int(sys.argv[2]) # 4
+    im_param_id= args[1]# 4
     im_params = instancemakerparams[im_param_id]
 
 
-    optimizer_para_id = int(sys.argv[3]) # 2
+    optimizer_para_id = args[2]# 2
     optimizerargs = Optimizerparams[optimizer_para_id]
 
-    run_id = int(sys.argv[4]) # 10
+    run_id =args[3] # 10
 
     im =  InstanceMaker(**im_params).fit(graphs, 10)
 
@@ -111,7 +123,7 @@ if __name__=="__main__":
     result = reconstruct_and_evaluate( target_graph, landmark_graphs, desired_distances, ranked_graphs, **optimizerargs)
 
 
-    dumpfile(result, "EXPL/%d_%d_%d_%d" % (task_id, im_param_id, optimizer_para_id, run_id))   #!!!
+    dumpfile(result, ".res/%d_%d_%d_%d" % (task_id, im_param_id, optimizer_para_id, run_id))   #!!!
 
 
 
@@ -120,8 +132,6 @@ if __name__=="__main__":
 #########################
 
 
-from collections import defaultdict
-import pandas
 
 
 def getvalue(a,b,c):

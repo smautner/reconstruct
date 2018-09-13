@@ -5,6 +5,9 @@ import structout as so
 from eden.graph import Vectorizer
 from sklearn.neighbors import NearestNeighbors
 
+import logging
+logger = logging.getLogger()
+
 dumpfile = lambda thing, filename: dill.dump(thing, open(filename, "wb"))
 jdumpfile = lambda thing, filename:  open(filename,'w').write(json.dumps(thing))
 loadfile = lambda filename: dill.load(open(filename, "rb"))
