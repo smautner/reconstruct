@@ -73,9 +73,10 @@ params_insta= {
 instancemakerparams = maketasks(params_insta)
 
 params_opt = {
-    'keyorder' :  ["half_step_distance",'n_iter'],
+    'keyorder' :  ["half_step_distance",'n_iter','multiproc'],
     "half_step_distance" : [True, False],
-    "n_iter":[6]
+    "n_iter":[10],
+    'multiproc': [False]
 }
 
 Optimizerparams = maketasks(params_opt)

@@ -45,9 +45,11 @@ class ParetoGraphOptimizer(object):
 
         random.seed(random_state)
 
+        '''
         self._expand_neighbors = compose(list,
                                          concat,
-                                         map(self._get_neighbors))
+          map(self._get_neighbors))
+        '''                               
 
     def _mark_non_visited(self, graphs):
         for g in graphs:
@@ -224,6 +226,8 @@ class hashvec(object):
         else:
             return self.vectorize_chunk(graphs)
 
+
+
 class MYOPTIMIZER(object):
     """ParetoGraphOptimizer."""
 
@@ -238,10 +242,10 @@ class MYOPTIMIZER(object):
         self.multiobj_est = multiobj_est
         self.n_iter = n_iter
         random.seed(random_state)
+        self.multiproc = multiproc
         self.hash_vectorizer = hashvec(eden.graph.Vectorizer(normalization=False,r=2,d=2),multiproc=multiproc)
-        self._expand_neighbors = compose(list,
-                                         concat,
-                                         map(self._get_neighbors))
+
+
 
     def checkstatus(self,costs,graphs):
         g = [graphs[e] for e in np.argmin(costs,axis=0)]
@@ -286,7 +290,6 @@ class MYOPTIMIZER(object):
         return graphs, status
 
     def filter_by_cost(self,costs,graphs):
-        
 
         timenow=time.time()
         in_count = len(graphs)
@@ -301,16 +304,15 @@ class MYOPTIMIZER(object):
         # 1. all grpahs need to be in top 200 size-wise
         costs_ranked = np.argsort(costs,axis=0)[:200,2]
         costs = costs[costs_ranked,:] 
-        costs = costs[:,[True, True,False,True]]
         graphs =[graphs[idd] for idd in costs_ranked]
        
         # need to keep x best in each category
-        costs_ranked = np.argsort(costs,axis=0)[:20]
+        costs_ranked = np.argsort(costs,axis=0)[:10]
         want = np.unique(costs_ranked) 
 
         res = [graphs[idd] for idd in want]
         for g,score in zip(res,want):
-            g.graph['history'].append(costs[want])
+            g.graph['history'].append(costs[score])
 
         logger.debug('cost_filter: got %d graphs, reduced to %d (%.2fs)'%(in_count,len(res),time.time()-timenow))
         return res
@@ -334,26 +336,35 @@ class MYOPTIMIZER(object):
     def get_costs(self, graphs):
         timenow=time.time()
         costs = self.multiobj_est.decision_function(graphs)
+        logger.debug("costs: best dist: %f (%.2fs)" %  (np.min(costs[:,0]) ,time.time()-timenow))
+        return costs
+
+        '''
         if costs.shape[0] < 40:
             return costs
-        
-        # find the 10th largest value column wise 
+               # find the 10th largest value column wise 
         costs_partitioned = np.partition(costs, 10, axis=0) 
         costs_partitioned[ costs_partitioned < .0000000001] =1  # no div by zero
         normalized_costs = costs / costs_partitioned[10,:]  # divide by that
         costs = np.hstack((costs, np.sum(normalized_costs, axis=1).reshape(-1,1)))
         logger.debug("costs: best dist: %f (%.2fs)" %  (np.min(costs[:,0]) ,time.time()-timenow))
-
         return costs
-
-
-
+        '''
 
     def _get_neighbors(self, graph):
         neighs = list(self.grammar.neighbors(graph))
         for n in neighs:
             n.graph['history']= graph.graph['history'].copy()
         return neighs
+
+    def _expand_neighbors(self, graphs):
+        if self.multiproc:
+            with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+                return list(concat(p.map(self._get_neighbors,graphs)))
+        else:
+            return list(concat(map(self._get_neighbors,graphs)))
+
+
 
 
 class LocalLandmarksDistanceOptimizer(object):
