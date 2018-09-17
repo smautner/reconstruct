@@ -29,10 +29,10 @@ configure_logging(logging.getLogger(),verbosity=2)
 
 params_graphs = {
     'keyorder' :  ["number_of_graphs", "size_of_graphs","node_labels","edge_labels"],
-    'number_of_graphs' : [110,510],
+    'number_of_graphs' : [110],
     'size_of_graphs' :[5,10] ,
-    'node_labels' : [5,10],
-    'edge_labels' : [5,10]
+    'node_labels' : [5,7],
+    'edge_labels' : [3]
 }
 
 # 2. function paramdict to tasks
@@ -67,14 +67,15 @@ def make_task_file():
 
 params_insta= {
     'keyorder' :  ["n_landmarks", "n_neighbors"],
-    'n_landmarks' : [5,10],
+    'n_landmarks' : [5,20],
     'n_neighbors' :[25,50]
 }
 instancemakerparams = maketasks(params_insta)
 
 params_opt = {
-    'keyorder' :  ["half_step_distance"],
-    "half_step_distance" : [True, False]
+    'keyorder' :  ["half_step_distance",'n_iter'],
+    "half_step_distance" : [True, False],
+    "n_iter":[6]
 }
 
 Optimizerparams = maketasks(params_opt)
@@ -120,7 +121,11 @@ if __name__=="__main__":
 
     res = im.get(run_id)
     landmark_graphs, desired_distances, ranked_graphs, target_graph = res
-    result = reconstruct_and_evaluate( target_graph, landmark_graphs, desired_distances, ranked_graphs, **optimizerargs)
+    result = reconstruct_and_evaluate( target_graph,
+            landmark_graphs,
+            desired_distances,
+            ranked_graphs,
+            **optimizerargs)
 
 
     dumpfile(result, ".res/%d_%d_%d_%d" % (task_id, im_param_id, optimizer_para_id, run_id))   #!!!
@@ -150,7 +155,7 @@ def report():
     for a in range(len(tasklist)):
         for b in range(len(instancemakerparams)):
             for c in range(len(Optimizerparams)):
-                dat[a][(b,c)] = getvalue(a,b,c,d)
+                dat[a][(b,c)] = getvalue(a,b,c)
     return pandas.DataFrame(dat)
 
 

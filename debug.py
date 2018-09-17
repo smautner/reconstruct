@@ -5,7 +5,9 @@ from util.util import InstanceMaker
 from exploration import pareto
 import structout as so
 
-
+from eden.util import configure_logging  
+import logging
+configure_logging(logging.getLogger(),verbosity=2)
 
 def test_randgraphs():
 
@@ -96,10 +98,20 @@ def test_pareto():
                               start_graph_list=landmark_graphs)
     return  None
 
-test_pareto()
+#test_pareto()
 
 
 #test_instancemaker()
 #test_randgraphs()
 #test_grammar()
 #test_neighexpansion()
+
+def debug_cost_filter():
+    from exploration import pareto
+    from util.util import loadfile
+    cost, graph = loadfile("ASD")
+    mizer = pareto.MYOPTIMIZER()
+    mizer.filter_by_cost(cost,graph)
+
+
+debug_cost_filter()

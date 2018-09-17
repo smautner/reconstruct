@@ -244,11 +244,11 @@ class MYOPTIMIZER(object):
                                          map(self._get_neighbors))
 
     def checkstatus(self,costs,graphs):
-        g = [graphs[e] for e in np.argmax(costs,axis=0)]
+        g = [graphs[e] for e in np.argmin(costs,axis=0)]
         #logger.debug([len(e)for e in g])
         logger.debug(so.graph.make_picture(g,edgelabel='label',size=10))
         if min(costs[:,0]) == 0:
-            print(graphs[np.argmin(costs[:,0])].graph['history'])
+            logger.debug(graphs[np.argmin(costs[:,0])].graph['history'])
             return True
         return False
 
@@ -286,16 +286,31 @@ class MYOPTIMIZER(object):
         return graphs, status
 
     def filter_by_cost(self,costs,graphs):
+        
+
         timenow=time.time()
         in_count = len(graphs)
         if in_count< 40:
             logger.debug('cost_filter: keep all %d graphs' % in_count)
             return graphs
-        costs_ranked = np.argsort(costs,axis=0) # column wise rank
-        best_scores = np.sum( costs_ranked < 70, axis=1) # make 0/1 matrix of where 1 = graph who has an ok rank
-        for g,scores in zip(graphs,costs_ranked < 70 ):
-            g.graph['history'].append(scores)
-        res = [g for g,good_if_true in zip(graphs,best_scores) if good_if_true > 1] # select the graphs
+
+        #from util import util 
+        #util.dumpfile([costs,graphs],"ASD")
+
+
+        # 1. all grpahs need to be in top 200 size-wise
+        costs_ranked = np.argsort(costs,axis=0)[:200,2]
+        costs = costs[costs_ranked,:] 
+        costs = costs[:,[True, True,False,True]]
+        graphs =[graphs[idd] for idd in costs_ranked]
+       
+        # need to keep x best in each category
+        costs_ranked = np.argsort(costs,axis=0)[:20]
+        want = np.unique(costs_ranked) 
+
+        res = [graphs[idd] for idd in want]
+        for g,score in zip(res,want):
+            g.graph['history'].append(costs[want])
 
         logger.debug('cost_filter: got %d graphs, reduced to %d (%.2fs)'%(in_count,len(res),time.time()-timenow))
         return res
@@ -321,8 +336,11 @@ class MYOPTIMIZER(object):
         costs = self.multiobj_est.decision_function(graphs)
         if costs.shape[0] < 40:
             return costs
-        costs_partitioned = np.partition(costs, -10, axis=0)  # find the 10th largest value column wise
-        normalized_costs = costs / costs_partitioned[-10,:]  # divide by that
+        
+        # find the 10th largest value column wise 
+        costs_partitioned = np.partition(costs, 10, axis=0) 
+        costs_partitioned[ costs_partitioned < .0000000001] =1  # no div by zero
+        normalized_costs = costs / costs_partitioned[10,:]  # divide by that
         costs = np.hstack((costs, np.sum(normalized_costs, axis=1).reshape(-1,1)))
         logger.debug("costs: best dist: %f (%.2fs)" %  (np.min(costs[:,0]) ,time.time()-timenow))
 
@@ -350,7 +368,7 @@ class LocalLandmarksDistanceOptimizer(object):
             min_count=1,
             expand_max_n_neighbors=None,
             max_size_frontier=None,
-            n_iter=2,
+            n_iter=5,
             expand_max_frontier=1000,
             output_k_best=None,
             adapt_grammar_n_iter=None, multiproc=False):
