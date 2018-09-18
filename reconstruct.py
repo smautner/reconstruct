@@ -106,14 +106,14 @@ if __name__=="__main__":
     task = loadfile(".tasks")
 
 
-    task_id = args[0] # 16
+    task_id = args[0] # 16    the graph configurations
     graphs = task [task_id]
 
-    im_param_id= args[1]# 4
+    im_param_id= args[1]# 4    landmark graphs , n neighs
     im_params = instancemakerparams[im_param_id]
 
 
-    optimizer_para_id = args[2]# 2
+    optimizer_para_id = args[2]# 4  optimizer args,, e.g. n_iter halfstep dist
     optimizerargs = Optimizerparams[optimizer_para_id]
 
     run_id =args[3] # 10
