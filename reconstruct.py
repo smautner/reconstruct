@@ -67,16 +67,16 @@ def make_task_file():
 
 params_insta= {
     'keyorder' :  ["n_landmarks", "n_neighbors"],
-    'n_landmarks' : [5,20],
-    'n_neighbors' :[25,50]
+    'n_landmarks' : [5,10], # 5 good, 20 too much 
+    'n_neighbors' :[15,75] # seems to not matter much 25 and 50 look the same
 }
 instancemakerparams = maketasks(params_insta)
 
 params_opt = {
     'keyorder' :  ["half_step_distance",'n_iter','multiproc'],
-    "half_step_distance" : [True, False],
-    "n_iter":[10,20],
-    'multiproc': [True]
+    "half_step_distance" : [True], # true clearly supperior
+    "n_iter":[10], # 20 doesnt help
+    'multiproc': [False]
 }
 
 Optimizerparams = maketasks(params_opt)
@@ -156,8 +156,13 @@ def report():
     for a in range(len(tasklist)):
         for b in range(len(instancemakerparams)):
             for c in range(len(Optimizerparams)):
-                dat[a][(b,c)] = getvalue(a,b,c)
-    return pandas.DataFrame(dat)
+                dat[a][("insta %d"%b,"optimizer %d" %c)] = getvalue(a,b,c)
+    import pprint
+    print (pandas.DataFrame(dat))
+    print ("instancemaker params:")
+    pprint.pprint(instancemakerparams) 
+    print ("optimizer params:")
+    pprint.pprint(Optimizerparams) 
 
 
 
