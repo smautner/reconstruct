@@ -107,8 +107,8 @@ class DistRankSizeCostEstimator(MultiObjectiveCostEstimator):
         """fit."""
         d_est = InstancesDistanceCostEstimator(self.vec, multiproc=self.multiproc)
         d_est.fit(desired_distances, reference_graphs)
-
-        b_est = RankBiasCostEstimator(self.vec, improve=True, multiproc = self.multiproc)
+        # rank opti: true better. tested 2018-09-17
+        b_est = RankBiasCostEstimator(self.vec, improve=True, multiproc = self.multiproc) 
         b_est.fit(ranked_graphs)
 
         s_est = SizeCostEstimator()
