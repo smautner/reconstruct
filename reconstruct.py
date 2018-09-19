@@ -30,9 +30,9 @@ configure_logging(logging.getLogger(),verbosity=2)
 params_graphs = {
     'keyorder' :  ["number_of_graphs", "size_of_graphs","node_labels","edge_labels"],
     'number_of_graphs' : [110],
-    'size_of_graphs' :[5,10] ,
-    'node_labels' : [5,7],
-    'edge_labels' : [3]
+    'size_of_graphs' :[5,8] ,
+    'node_labels' : [3,4],
+    'edge_labels' : [2,3] # using 5 here mega ga fails
 }
 
 # 2. function paramdict to tasks
@@ -67,8 +67,8 @@ def make_task_file():
 
 params_insta= {
     'keyorder' :  ["n_landmarks", "n_neighbors"],
-    'n_landmarks' : [5,10], # 5 good, 20 too much 
-    'n_neighbors' :[15,75] # seems to not matter much 25 and 50 look the same
+    'n_landmarks' : [3,4,5], # 5 good, 20 too much , 10 still worse than 5 , 7 slightly worse than 5
+    'n_neighbors' :[8,10] # seems to not matter much 25 and 50 look the same, 15 and 75 also
 }
 instancemakerparams = maketasks(params_insta)
 
@@ -163,8 +163,8 @@ def report():
     pprint.pprint(instancemakerparams) 
     print ("optimizer params:")
     pprint.pprint(Optimizerparams) 
-
-
+    print ("graph configurations:")
+    pprint.pprint(tasklist  )
 
 
 
