@@ -76,7 +76,7 @@ params_opt = {
     'keyorder' :  ["half_step_distance",'n_iter','multiproc'],
     "half_step_distance" : [True], # true clearly supperior
     "n_iter":[10], # 20 doesnt help
-    'multiproc': [False]
+    'multiproc': [True]
 }
 
 Optimizerparams = maketasks(params_opt)
@@ -88,7 +88,8 @@ def reconstruct_and_evaluate(target_graph,
                                 ranked_graphs,
                                 **args):
     optimizer = pareto.LocalLandmarksDistanceOptimizer(**args)
-    res = optimizer.optimize(landmark_graphs,desired_distances,ranked_graphs)
+    # providing target, prints real distances for all "passing" creations
+    res = optimizer.optimize(landmark_graphs,desired_distances,ranked_graphs) #,target=target_graph)
     return res
 
 

@@ -228,6 +228,15 @@ class hashvec(object):
 
 
 
+class cheater(object):
+    def __init__(self,target):
+            self.vectorizer = costs.Vectorizer()
+            self.cheatreference = self.vectorizer.transform([target])
+    def cheat_calc(self,others):
+            return costs.euclidean_distances(self.cheatreference, self.vectorizer.transform(others))[0]
+
+
+
 class MYOPTIMIZER(object):
     """ParetoGraphOptimizer."""
 
@@ -236,7 +245,7 @@ class MYOPTIMIZER(object):
             grammar=None,
             multiobj_est=None,
             n_iter=19,
-            random_state=1,multiproc=True):
+            random_state=1,multiproc=True, target=None):
         """init."""
         self.grammar = grammar
         self.multiobj_est = multiobj_est
@@ -244,6 +253,10 @@ class MYOPTIMIZER(object):
         random.seed(random_state)
         self.multiproc = multiproc
         self.hash_vectorizer = hashvec(eden.graph.Vectorizer(normalization=False,r=2,d=2),multiproc=multiproc)
+        self.cheat = False
+        if target:
+            self.cheat= True
+            self.cheater = cheater(target)
 
 
 
@@ -308,12 +321,29 @@ class MYOPTIMIZER(object):
         graphs =[graphs[idd] for idd in costs_ranked]
        
         # need to keep x best in each category
-        costs_ranked = np.argsort(costs,axis=0)[:40]
+        costs_ranked = np.argsort(costs,axis=0)[:30]
         want , counts = np.unique(costs_ranked,return_counts=True) 
 
-        res = [graphs[idd] for idd,count in zip( want,counts) if count > 1 ] 
+        res = [graphs[idd] for idd,count in zip( want,counts) if count > 0 ] 
         for g,score in zip(res,want):
             g.graph['history'].append(costs[score])
+
+        # DEBUG TO SHOW THE REAL DISTANCE
+        if self.cheat:
+            print ("real distances for all kept graphs, axis 1 are the estimators that selected them")
+            matrix = np.hstack(
+                        [self.cheater.cheat_calc([graphs[z] for z in costs_ranked[:,i]]).reshape(-1,1)
+                        for i in range(costs_ranked.shape[1])]
+                )
+            print(matrix)
+            print (costs[costs_ranked[:,1],0])
+            print (costs[costs_ranked[:,0],0])
+
+            stuff = np.where(matrix == 0.0)
+            if len(stuff[0])>0:
+                from util import util
+                util.dumpfile(graphs[costs_ranked[stuff][0]],"gr")
+                print ("graph dumped")
 
         logger.debug('cost_filter: got %d graphs, reduced to %d (%.2fs)'%(in_count,len(res),time.time()-timenow))
         return res
@@ -337,6 +367,8 @@ class MYOPTIMIZER(object):
     def get_costs(self, graphs):
         timenow=time.time()
         costs = self.multiobj_est.decision_function(graphs)
+
+
         #logger.debug("costs: best dist: %f (%.2fs)" %  (np.min(costs[:,0]) ,time.time()-timenow))
         #return costs
 
@@ -361,6 +393,9 @@ class MYOPTIMIZER(object):
 
         logger.debug("costs: best dist: %f (%.2fs)" %  (np.min(costs[:,0]) ,time.time()-timenow))
         return costs
+
+
+
 
     def _get_neighbors(self, graph):
         neighs = list(self.grammar.neighbors(graph))
@@ -439,8 +474,10 @@ class LocalLandmarksDistanceOptimizer(object):
             self,
             reference_graphs,
             desired_distances,
-            ranked_graphs, start_graph_list=False):
-        """optimize."""
+            ranked_graphs, start_graph_list=False, target=None):
+        """optimize.
+        # providing target, prints real distances for all "passing" creations
+        """
         # self.grammar.fit(graphscramble.scramble(ranked_graphs))
         self.enhance_grammar(ranked_graphs)  # WAS REF BUT REF MIGHT BE SMALL
 
@@ -463,10 +500,11 @@ class LocalLandmarksDistanceOptimizer(object):
             grammar=self.grammar,
             multiobj_est=self.multiobj_est,
             n_iter=self.n_iter,
-            multiproc=self.multiproc)
+            multiproc=self.multiproc, target=target)
 
         if not start_graph_list:
-            res = pgo.optimize(reference_graphs + ranked_graphs)
+            res = pgo.optimize(ranked_graphs)
+            #res = pgo.optimize(reference_graphs + ranked_graphs)
         else:
             res = pgo.optimize(start_graph_list)
         return res

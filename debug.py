@@ -98,20 +98,32 @@ def test_pareto():
                               start_graph_list=landmark_graphs)
     return  None
 
+
+def test_estimators():
+    from util.util import loadfile
+    import reconstruct
+    import exploration.cost_estimator as costor
+    graphs = loadfile(".tasks")[0]
+    im_param_id= 0
+    im_params = reconstruct.instancemakerparams[im_param_id]
+
+    im =  InstanceMaker(**im_params).fit(graphs, 10)
+    esti = costor.DistRankSizeCostEstimator(multiproc=True)
+    a,b,c, target =im.get(0)
+    esti.fit(b,a,c)
+
+    ex = loadfile("gr")
+    print (esti.decision_function([target]))
+    print (esti.decision_function([ex]))
+    so.gprint([ex,target])
+
+
+test_estimators()
+
+
 #test_pareto()
-
-
 #test_instancemaker()
 #test_randgraphs()
 #test_grammar()
 #test_neighexpansion()
 
-def debug_cost_filter():
-    from exploration import pareto
-    from util.util import loadfile
-    cost, graph = loadfile("ASD")
-    mizer = pareto.MYOPTIMIZER()
-    mizer.filter_by_cost(cost,graph)
-
-
-debug_cost_filter()

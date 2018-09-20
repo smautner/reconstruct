@@ -19,7 +19,7 @@ class InstanceMaker(object):
 
     def __init__(self, n_landmarks=5, n_neighbors=50):
         """init."""
-        self.vec = Vectorizer(r=3, d=6,normalization=False, inner_normalization=False)
+        self.vec = Vectorizer(r=3, d=3,normalization=False, inner_normalization=False)
         self.n_neighbors = n_neighbors
         self.n_landmarks = n_landmarks
 
