@@ -76,7 +76,7 @@ params_opt = {
     'keyorder' :  ["half_step_distance",'n_iter','multiproc'],
     "half_step_distance" : [True], # true clearly supperior
     "n_iter":[10], # 20 doesnt help
-    'multiproc': [True]
+    'multiproc': [False]
 }
 
 Optimizerparams = maketasks(params_opt)

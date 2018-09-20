@@ -265,7 +265,7 @@ class MYOPTIMIZER(object):
         #logger.debug([len(e)for e in g])
         logger.debug(so.graph.make_picture(g,edgelabel='label',size=10))
         if min(costs[:,0]) == 0:
-            logger.debug(graphs[np.argmin(costs[:,0])].graph['history'])
+            #logger.debug(graphs[np.argmin(costs[:,0])].graph['history'])
             return True
         return False
 
