@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 import structout as so
 from exploration import pareto_funcs as paretof, cost_estimator as costs
-
+from extensions import lsggscramble as lsggs
 
 class ParetoGraphOptimizer(object):
     """ParetoGraphOptimizer."""
@@ -293,24 +293,25 @@ class MYOPTIMIZER(object):
 
         timenow=time.time()
         in_count = len(graphs)
-        if in_count< 40:
+        if in_count< 50:
             logger.debug('cost_filter: keep all %d graphs' % in_count)
             return graphs
 
-        #from util import util 
-        #util.dumpfile([costs,graphs],"ASD")
+        # 1. Filter by SIZE
+        costs_ranked = np.argsort(costs,axis=0)[:,2]
+        cut = 50
+        while costs[costs_ranked[cut],2] == costs[costs_ranked[cut+1],2] and cut+1 < len(graphs):
+            cut+=1
 
-
-        # 1. all grpahs need to be in top 200 size-wise
-        costs_ranked = np.argsort(costs,axis=0)[:200,2]
+        costs_ranked = costs_ranked[:cut]
         costs = costs[costs_ranked,:] 
         graphs =[graphs[idd] for idd in costs_ranked]
        
         # need to keep x best in each category
-        costs_ranked = np.argsort(costs,axis=0)[:10]
-        want = np.unique(costs_ranked) 
+        costs_ranked = np.argsort(costs,axis=0)[:40]
+        want , counts = np.unique(costs_ranked,return_counts=True) 
 
-        res = [graphs[idd] for idd in want]
+        res = [graphs[idd] for idd,count in zip( want,counts) if count > 1 ] 
         for g,score in zip(res,want):
             g.graph['history'].append(costs[score])
 
@@ -336,20 +337,30 @@ class MYOPTIMIZER(object):
     def get_costs(self, graphs):
         timenow=time.time()
         costs = self.multiobj_est.decision_function(graphs)
-        logger.debug("costs: best dist: %f (%.2fs)" %  (np.min(costs[:,0]) ,time.time()-timenow))
-        return costs
+        #logger.debug("costs: best dist: %f (%.2fs)" %  (np.min(costs[:,0]) ,time.time()-timenow))
+        #return costs
 
-        '''
-        if costs.shape[0] < 40:
+        if costs.shape[0] < 50:
             return costs
-               # find the 10th largest value column wise 
-        costs_partitioned = np.partition(costs, 10, axis=0) 
-        costs_partitioned[ costs_partitioned < .0000000001] =1  # no div by zero
-        normalized_costs = costs / costs_partitioned[10,:]  # divide by that
-        costs = np.hstack((costs, np.sum(normalized_costs, axis=1).reshape(-1,1)))
+
+
+        sort = np.argsort(costs,axis=0)
+        nucol = np.argsort(sort,axis=0)
+        current_val = -1
+        current_rank = -1
+        resdic ={}
+        for i,e in enumerate(sort[:,2]):
+            if costs[e,2] != current_val: # there is a new value
+                current_val = costs[e,2]      # remember that 
+                resdic[current_val] = i
+
+        for i,e in enumerate(costs[:,2]):
+            nucol[i,2] = resdic[e]
+
+        costs = np.hstack((costs, np.sum(nucol,axis =1).reshape(-1,1)))
+
         logger.debug("costs: best dist: %f (%.2fs)" %  (np.min(costs[:,0]) ,time.time()-timenow))
         return costs
-        '''
 
     def _get_neighbors(self, graph):
         neighs = list(self.grammar.neighbors(graph))
@@ -406,7 +417,12 @@ class LocalLandmarksDistanceOptimizer(object):
 
     def enhance_grammar(self, graphs):
         self.grammar.fit(graphs)
-        # util.draw_grammar_term(self.grammar.productions)
+        print(self.grammar)
+        lsggs.enhance(self.grammar, graphs,lsggs.makelsgg(),nodecount=10, edgecount =5, degree =3)
+        print(self.grammar)
+        
+        #from graphlearn3 import util
+        #util.draw_grammar_term(self.grammar.productions)
         '''
         logger.debug("before lsgg enhancement: "+str(self.grammar))
         self.grammar = lsggscramble.enhance(self.grammar,

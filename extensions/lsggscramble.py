@@ -31,8 +31,16 @@ def enumerator(array=[0,0],cpos=0,symb=2):
         results += enumerator( array, cpos+1,symb)
     return results
             
+
+import structout as so
 def add_cip(grammar, graph):
     cip= next(grammar._cip_extraction_given_root(graph,0))
+    '''
+    so.gprint(cip.graph)
+    print(cip.graph.graph)
+    so.graph.ginfo(cip.graph)
+    print (cip.__dict__)
+    '''
     grammar._add_cip(cip)
 
 def enhance(grammar,graphs, makelsgg, nodecount = 10, edgecount = 5, degree =3 ):
@@ -41,8 +49,44 @@ def enhance(grammar,graphs, makelsgg, nodecount = 10, edgecount = 5, degree =3 )
     nodes =  [key for key, count in nodes.most_common(nodecount)]
     #print "most common nodes, edges: ", nodes, edges
     #grammar = makelsgg() #lol
-    enhance_multiproc(grammar, edges, nodes, makelsgg, degree)
+    enhance_HALFDIST(grammar, edges, nodes)
+    #enhance_multiproc(grammar, edges, nodes, makelsgg, degree)
     return grammar
+
+def enhance_HALFDIST(grammar,edges,nodes):
+
+    arms = [ (a,b) for a in edges for b in nodes   ]
+    add = lambda graph, arms: add_arms_add_grammar_HALFDIST(grammar, graph,arms)
+
+    # 2 nodes: 
+    graph = nx.star_graph(1)
+    graph.graph['expanded'] = True
+    graph._node[0]['node'] = True
+    for rootlabel in nodes:
+        graph._node[0]['label'] = rootlabel
+        for e in edges:
+            graph._node[1]['label'] = e
+            graph._node[1]['edge'] = True
+            add_cip(grammar,graph)
+
+    for numnodes in range(2,4):
+        graph = nx.star_graph(numnodes)
+        graph.graph['expanded'] = True
+        graph._node[0]['node'] = True
+        combos = enumerator([0]*numnodes,symb = len(edges))
+        for rootlabel in nodes:
+            graph._node[0]['label'] = rootlabel
+            for combo in combos:
+                add(graph, [edges[e] for e in combo])
+
+
+def add_arms_add_grammar_HALFDIST (grammar, graph, arms):
+    for i, edge in enumerate(arms):
+        graph._node[i+1]['label'] = edge
+        graph._node[i+1]['edge'] = True
+    add_cip(grammar,graph)
+
+
 
 
 def add_arms_add_grammar (grammar, graph, arms):
