@@ -28,11 +28,13 @@ configure_logging(logging.getLogger(),verbosity=2)
 # 1. param dict
 
 params_graphs = {
-    'keyorder' :  ["number_of_graphs", "size_of_graphs","node_labels","edge_labels"],
-    'number_of_graphs' : [110],
-    'size_of_graphs' :[5,8] ,
-    'node_labels' : [3,4],
-    'edge_labels' : [2,3] # using 5 here mega ga fails
+    'keyorder' :  ["number_of_graphs", "size_of_graphs","node_labels","edge_labels","allow_cycles","labeldistribution"],
+    'allow_cycles':[False,True],
+    'number_of_graphs' : [210],
+    'size_of_graphs' :[6,8] ,
+    'node_labels' : [4,5],
+    'edge_labels' : [3,4], # using 5 here mega ga fails
+    'labeldistribution': ['uniform','real']
 }
 
 # 2. function paramdict to tasks
@@ -52,8 +54,6 @@ tasklist  = maketasks(params_graphs )
 
 def make_task_file():
     dumpfile([ rg.make_graphs_static(maxdeg=3,
-                                     allow_cycles=False,
-                                     labeldistribution='uniform',
                                      **args) for args in tasklist], ".tasks")
 
 
@@ -70,13 +70,16 @@ params_insta= {
     'n_landmarks' : [3,4,5], # 5 good, 20 too much , 10 still worse than 5 , 7 slightly worse than 5
     'n_neighbors' :[8,10] # seems to not matter much 25 and 50 look the same, 15 and 75 also
 }
-instancemakerparams = maketasks(params_insta)
+instancemakerparams = [{"n_landmarks":5, "n_neighbors":10},{ "n_landmarks":10, "n_neighbors":20} ] 
+#maketasks(params_insta)
 
 params_opt = {
-    'keyorder' :  ["half_step_distance",'n_iter','multiproc'],
+    'keyorder' :  ["half_step_distance",'n_iter','multiproc',"add_grammar_rules","keeptop"],
     "half_step_distance" : [True], # true clearly supperior
-    "n_iter":[10], # 20 doesnt help
-    'multiproc': [False]
+    "n_iter":[5,10], # 20 doesnt help
+    "keeptop":[20,30],
+    'multiproc': [True],
+    "add_grammar_rules":[True]
 }
 
 Optimizerparams = maketasks(params_opt)

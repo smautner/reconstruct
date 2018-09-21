@@ -245,9 +245,11 @@ class MYOPTIMIZER(object):
             grammar=None,
             multiobj_est=None,
             n_iter=19,
+            keeptop= 20,
             random_state=1,multiproc=True, target=None):
         """init."""
         self.grammar = grammar
+        self.keeptop = keeptop
         self.multiobj_est = multiobj_est
         self.n_iter = n_iter
         random.seed(random_state)
@@ -321,7 +323,7 @@ class MYOPTIMIZER(object):
         graphs =[graphs[idd] for idd in costs_ranked]
        
         # need to keep x best in each category
-        costs_ranked = np.argsort(costs,axis=0)[:30]
+        costs_ranked = np.argsort(costs,axis=0)[:self.keeptop]
         want , counts = np.unique(costs_ranked,return_counts=True) 
 
         res = [graphs[idd] for idd,count in zip( want,counts) if count > 0 ] 
@@ -427,7 +429,9 @@ class LocalLandmarksDistanceOptimizer(object):
             max_size_frontier=None,
             n_iter=5,
             expand_max_frontier=1000,
+            keeptop= 20,
             output_k_best=None,
+            add_grammar_rules = False,
             adapt_grammar_n_iter=None, multiproc=False):
         """init."""
         self.adapt_grammar_n_iter = adapt_grammar_n_iter
@@ -445,6 +449,8 @@ class LocalLandmarksDistanceOptimizer(object):
         self.grammar.filter_args['min_cip_count'] = min_count
         self.multiobj_est = costs.DistRankSizeCostEstimator(r=r, d=d, multiproc=multiproc)
         self.multiproc=multiproc
+        self.add_grammar_rules = add_grammar_rules
+        self.keeptop =keeptop
 
     def fit(self):
         """fit."""
@@ -452,9 +458,10 @@ class LocalLandmarksDistanceOptimizer(object):
 
     def enhance_grammar(self, graphs):
         self.grammar.fit(graphs)
-        print(self.grammar)
-        lsggs.enhance(self.grammar, graphs,lsggs.makelsgg(),nodecount=10, edgecount =5, degree =3)
-        print(self.grammar)
+        if self.add_grammar_rules:
+            print(self.grammar)
+            lsggs.enhance(self.grammar, graphs,lsggs.makelsgg(),nodecount=10, edgecount =5, degree =3)
+            print(self.grammar)
         
         #from graphlearn3 import util
         #util.draw_grammar_term(self.grammar.productions)
@@ -500,6 +507,7 @@ class LocalLandmarksDistanceOptimizer(object):
             grammar=self.grammar,
             multiobj_est=self.multiobj_est,
             n_iter=self.n_iter,
+            keeptop=self.keeptop,
             multiproc=self.multiproc, target=target)
 
         if not start_graph_list:
