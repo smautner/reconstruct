@@ -21,8 +21,7 @@ from exploration import pareto
 from eden.util import configure_logging
 import logging
 configure_logging(logging.getLogger(),verbosity=2)
-
-
+logger = logging.getLogger(__name__)
 
 
 # 1. param dict
@@ -106,6 +105,7 @@ if __name__=="__main__":
         args = list(map(int, sys.argv[-1].strip().split(" ")))
 
 
+
     resu=[]
     task = loadfile(".tasks")
 
@@ -119,6 +119,10 @@ if __name__=="__main__":
 
     optimizer_para_id = args[2]# 4  optimizer args,, e.g. n_iter halfstep dist
     optimizerargs = Optimizerparams[optimizer_para_id]
+
+    logger.debug(im_params)
+    logger.debug(tasklist[taskid])
+    logger.debug(optimizerargs)
 
     run_id =args[3] # 10
 
