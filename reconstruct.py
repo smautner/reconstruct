@@ -28,12 +28,12 @@ logger = logging.getLogger(__name__)
 
 params_graphs = {
     'keyorder' :  ["number_of_graphs", "size_of_graphs","node_labels","edge_labels","allow_cycles","labeldistribution"],
-    'allow_cycles':[False,True],
-    'number_of_graphs' : [210],
-    'size_of_graphs' :[6,8] ,
-    'node_labels' : [4,5],
-    'edge_labels' : [3,4], # using 5 here mega ga fails
-    'labeldistribution': ['uniform','real']
+    'allow_cycles':[False], # cycles are very bad
+    'number_of_graphs' : [210,1010],
+    'size_of_graphs' :[8] ,
+    'node_labels' : [2,4,8],
+    'edge_labels' : [2,4], # using 5 here mega ga fails
+    'labeldistribution': ['uniform'] # real is unnecessary
 }
 
 # 2. function paramdict to tasks
@@ -66,17 +66,17 @@ def make_task_file():
 
 params_insta= {
     'keyorder' :  ["n_landmarks", "n_neighbors"],
-    'n_landmarks' : [3,4,5], # 5 good, 20 too much , 10 still worse than 5 , 7 slightly worse than 5
-    'n_neighbors' :[8,10] # seems to not matter much 25 and 50 look the same, 15 and 75 also
+    'n_landmarks' : [10,20], # seems to help a little with larger problems, >3 recommended
+    'n_neighbors' :[20,30] # seems to not matter much 25 and 50 look the same, 15 and 75 also
 }
-instancemakerparams = [{"n_landmarks":5, "n_neighbors":10},{ "n_landmarks":10, "n_neighbors":20} ] 
+instancemakerparams = [{"n_landmarks":10, "n_neighbors":15},{ "n_landmarks":20, "n_neighbors":25} ] 
 #maketasks(params_insta)
 
 params_opt = {
     'keyorder' :  ["half_step_distance",'n_iter','multiproc',"add_grammar_rules","keeptop"],
     "half_step_distance" : [True], # true clearly supperior
-    "n_iter":[5,10], # 20 doesnt help
-    "keeptop":[20,30],
+    "n_iter":[10,15], # 5 just for ez problems
+    "keeptop":[20], # 20 seems enough
     'multiproc': [False],
     "add_grammar_rules":[True]
 }
