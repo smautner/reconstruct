@@ -121,7 +121,7 @@ if __name__=="__main__":
     optimizerargs = Optimizerparams[optimizer_para_id]
 
     logger.debug(im_params)
-    logger.debug(tasklist[taskid])
+    logger.debug(tasklist[task_id])
     logger.debug(optimizerargs)
 
     run_id =args[3] # 10
@@ -170,7 +170,8 @@ def optitostr(op):
 def grtostr(gr):
     d = tasklist[gr]
     #return "Cyc:%d elab:%d nlab:%d siz:%d dist:%s" % (d['allow_cycles'],d['edge_labels'],d['node_labels'],d['size_of_graphs'],d['labeldistribution'][0])
-    return tuple(("Cyc:%d elab:%d nlab:%d siz:%d dist:%s" % (d['allow_cycles'],d['edge_labels'],d['node_labels'],d['size_of_graphs'],d['labeldistribution'][0])).split(" "))
+    #return tuple(("Cyc:%d elab:%d nlab:%d siz:%d dist:%s" % (d['allow_cycles'],d['edge_labels'],d['node_labels'],d['size_of_graphs'],d['labeldistribution'][0])).split(" "))
+    return tuple(("numgr:%d elab:%d nlab:%d siz:%d" % (d['number_of_graphs'],d['edge_labels'],d['node_labels'],d['size_of_graphs'])).split(" "))
 
 def report():
     dat= defaultdict(dict)
