@@ -78,7 +78,7 @@ params_opt = {
     "half_step_distance" : [True], # true clearly supperior
     "n_iter":[5,10], # 20 doesnt help
     "keeptop":[20,30],
-    'multiproc': [True],
+    'multiproc': [False],
     "add_grammar_rules":[True]
 }
 
@@ -154,15 +154,32 @@ def getvalue(a,b,c):
             success += loadfile(fname)
     return success, completed
 
+
+
+
+def imtostr(im):
+    d=instancemakerparams[im]
+    return "marks:%d neigh:%d" % (d["n_landmarks"], d["n_neighbors"])
+def optitostr(op):
+    d=Optimizerparams[op]
+    return "top:%d iter:%d" % (d["keeptop"], d["n_iter"])
+def grtostr(gr):
+    d = tasklist[gr]
+    #return "Cyc:%d elab:%d nlab:%d siz:%d dist:%s" % (d['allow_cycles'],d['edge_labels'],d['node_labels'],d['size_of_graphs'],d['labeldistribution'][0])
+    return tuple(("Cyc:%d elab:%d nlab:%d siz:%d dist:%s" % (d['allow_cycles'],d['edge_labels'],d['node_labels'],d['size_of_graphs'],d['labeldistribution'][0])).split(" "))
+
 def report():
     dat= defaultdict(dict)
 
     for a in range(len(tasklist)):
         for b in range(len(instancemakerparams)):
             for c in range(len(Optimizerparams)):
-                dat[a][("insta %d"%b,"optimizer %d" %c)] = getvalue(a,b,c)
+                dat[(imtostr(b),optitostr(c))][grtostr(a)] = getvalue(a,b,c)
+
     import pprint
-    print (pandas.DataFrame(dat))
+    print (pandas.DataFrame(dat).to_string())
+    #print (pandas.DataFrame(dat))df.describe().to_string()
+    '''
     print ("instancemaker params:")
     pprint.pprint(instancemakerparams) 
     print ("optimizer params:")
@@ -170,6 +187,7 @@ def report():
     print ("graph configurations:")
     pprint.pprint(tasklist  )
 
+    '''
 
 
 
