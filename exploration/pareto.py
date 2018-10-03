@@ -256,6 +256,7 @@ class MYOPTIMIZER(object):
         self.multiproc = multiproc
         self.hash_vectorizer = hashvec(eden.graph.Vectorizer(normalization=False,r=2,d=2),multiproc=multiproc)
         self.cheat = False
+        self.seen_graphs = {}
         if target:
             self.cheat= True
             self.cheater = cheater(target)
