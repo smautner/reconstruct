@@ -69,13 +69,15 @@ params_insta= {
     'n_landmarks' : [10,20], # seems to help a little with larger problems, >3 recommended
     'n_neighbors' :[20,30] # seems to not matter much 25 and 50 look the same, 15 and 75 also
 }
-instancemakerparams = [{"n_landmarks":10, "n_neighbors":15},{ "n_landmarks":20, "n_neighbors":25} ] 
+instancemakerparams = [{ "n_landmarks":25, "n_neighbors":100} ,
+        { "n_landmarks":50, "n_neighbors":100},
+        { "n_landmarks":100, "n_neighbors":100}] 
 #maketasks(params_insta)
 
 params_opt = {
     'keyorder' :  ["half_step_distance",'n_iter','multiproc',"add_grammar_rules","keeptop"],
     "half_step_distance" : [True], # true clearly supperior
-    "n_iter":[10,15], # 5 just for ez problems
+    "n_iter":[10], # 5 just for ez problems
     "keeptop":[20], # 20 seems enough
     'multiproc': [False],
     "add_grammar_rules":[True]

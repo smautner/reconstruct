@@ -314,11 +314,11 @@ class MYOPTIMIZER(object):
 
         # 1. Filter by SIZE
         costs_ranked = np.argsort(costs,axis=0)[:,2]
-        cut = 50
-        while costs[costs_ranked[cut],2] == costs[costs_ranked[cut+1],2] and cut+1 < len(graphs):
+        cut = 49
+        while costs[costs_ranked[cut-1],2] == costs[costs_ranked[cut],2] and cut+1 < len(graphs):
             cut+=1
 
-        costs_ranked = costs_ranked[:cut]
+        costs_ranked = costs_ranked[:cut+1] 
         costs = costs[costs_ranked,:] 
         graphs =[graphs[idd] for idd in costs_ranked]
        
