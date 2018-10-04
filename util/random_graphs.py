@@ -142,7 +142,7 @@ def make_graphs_static(number_of_graphs=100, size_of_graphs=5, node_labels=5, ed
     failcount = 0
     while len(l)< number_of_graphs:
         g= make_graph_strict(size_of_graphs, node_labels, edge_labels, maxdeg, dist=labeldistribution, allow_cycles=allow_cycles)
-        harsch = glcip.graph_hash(edeng._edge_to_vertex_transform(g.copy()),2**20-1,node_name_label=lambda id,node:hash(node['label']))
+        harsch = glcip.graph_hash(edeng._edge_to_vertex_transform(g.copy()),node_name_label=lambda id,node:hash(node['label']))
         if harsch not in seen:
             seen[harsch] = 1
             l.append(g)
