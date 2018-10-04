@@ -6,16 +6,21 @@ import sys
 
 from util.util import jdumpfile, jloadfile, InstanceMaker, dumpfile, loadfile
 
-#echo -e (seq 0 15)" "(seq 0 3)" "(seq 0 1)" "(seq 0 9)"\n" | parallel --bar --results .log -j 15 python3 reconstruct.py 
+from util import rule_rand_graphs as rrg
+EXPERIMENT_REPEATS = 20
+
+'''
+USAGE:
+    python3 reconstruct.py  to generate problem instances
+    fish runall.sh  to run with parallel
+    python3 -c "import reconstruct as r; r.report()"   to see result
+'''
+
+
 ####################
 # run and get best result
 ###################
 from exploration import pareto
-
-
-#echo -e  (seq 10)" "(seq 10)"\n" | parallel                09-13-1154
-
-
 
 
 from eden.util import configure_logging
@@ -29,11 +34,12 @@ logger = logging.getLogger(__name__)
 params_graphs = {
     'keyorder' :  ["number_of_graphs", "size_of_graphs","node_labels","edge_labels","allow_cycles","labeldistribution"],
     'allow_cycles':[False], # cycles are very bad
-    'number_of_graphs' : [210,1010],
+    'number_of_graphs' : [20],
     'size_of_graphs' :[8] ,
     'node_labels' : [2,4,8],
     'edge_labels' : [2,4], # using 5 here mega ga fails
-    'labeldistribution': ['uniform'] # real is unnecessary
+    'labeldistribution': ['uniform'] ,# real is unnecessary
+    'maxdeg':[3]
 }
 
 # 2. function paramdict to tasks
@@ -49,11 +55,17 @@ def maketasks(params):
 tasklist  = maketasks(params_graphs )
 
 
-# 3. loop over tasks
+# 3. loop over task
 
 def make_task_file():
-    dumpfile([ rg.make_graphs_static(maxdeg=3,
-                                     **args) for args in tasklist], ".tasks")
+    
+    def maketsk(graphs):
+        g,_ = rrg.rule_rand_graphs(graphs, numgr=500,iter=2)
+        return g #+ graphs
+
+    dumpfile([ maketsk( rg.make_graphs_static(**args)) for args in tasklist], ".tasks")
+
+    #dumpfile([ rg.make_graphs_static(maxdeg=3, **args) for args in tasklist], ".tasks")
 
 
 
@@ -69,10 +81,9 @@ params_insta= {
     'n_landmarks' : [10,20], # seems to help a little with larger problems, >3 recommended
     'n_neighbors' :[20,30] # seems to not matter much 25 and 50 look the same, 15 and 75 also
 }
-instancemakerparams = [{ "n_landmarks":25, "n_neighbors":100} ,
-        { "n_landmarks":50, "n_neighbors":100},
-        { "n_landmarks":100, "n_neighbors":100}] 
 #maketasks(params_insta)
+instancemakerparams = [{ "n_landmarks":25, "n_neighbors":50}]
+
 
 params_opt = {
     'keyorder' :  ["half_step_distance",'n_iter','multiproc',"add_grammar_rules","keeptop"],
@@ -128,7 +139,7 @@ if __name__=="__main__":
 
     run_id =args[3] # 10
 
-    im =  InstanceMaker(**im_params).fit(graphs, 10)
+    im =  InstanceMaker(**im_params).fit(graphs, EXPERIMENT_REPEATS)
 
     res = im.get(run_id)
     landmark_graphs, desired_distances, ranked_graphs, target_graph = res
@@ -150,14 +161,20 @@ if __name__=="__main__":
 
 
 
-def getvalue(a,b,c):
+def getvalue(a,b,c, nores, nosucc):
     completed = 0
     success = 0
-    for task in range(10):
-        fname = ".res/%d_%d_%d_%d" % (a,b,c,task)
+    for task in range(EXPERIMENT_REPEATS):
+        taskname = "%d_%d_%d_%d" % (a,b,c,task)
+        fname = ".res/"+taskname
         if os.path.isfile(fname):
             completed +=1
-            success += loadfile(fname)
+            res = loadfile(fname)
+            success += res
+            if not res:
+                nosucc.append(taskname)
+        else: 
+            nores.append(taskname)
     return success, completed
 
 
@@ -177,14 +194,17 @@ def grtostr(gr):
 
 def report():
     dat= defaultdict(dict)
-
+    nores = []
+    nosucc =[]
     for a in range(len(tasklist)):
         for b in range(len(instancemakerparams)):
             for c in range(len(Optimizerparams)):
-                dat[(imtostr(b),optitostr(c))][grtostr(a)] = getvalue(a,b,c)
+                dat[(imtostr(b),optitostr(c))][grtostr(a)] = getvalue(a,b,c, nores, nosucc)
 
     import pprint
     print (pandas.DataFrame(dat).to_string())
+    print ("nores",nores)
+    print ('nosucc',nosucc)
     #print (pandas.DataFrame(dat))df.describe().to_string()
     '''
     print ("instancemaker params:")
