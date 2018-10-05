@@ -159,8 +159,7 @@ def blubber(thing):
 
 def makelsgg():
     return  lsgg.lsgg(decomposition_args={"radius_list": [0],
-                                     "thickness_list": [1],
-                                     'hash_bitmask': lsgg._hash_bitmask_},
+                                     "thickness_list": [1]},
                  filter_args={"min_cip_count": 1,
                               "min_interface_count": 1}
                  )
