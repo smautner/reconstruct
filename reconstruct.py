@@ -3,6 +3,7 @@ from collections import defaultdict
 import pandas
 import os
 import sys
+import numpy as np
 
 from util.util import jdumpfile, jloadfile, InstanceMaker, dumpfile, loadfile
 
@@ -166,19 +167,21 @@ if __name__=="__main__":
 
 def getvalue(a,b,c, nores, nosucc): # nosucc and nores are just collecting stats
     completed = 0
+    allsteps=[]
     success = 0
     for task in range(EXPERIMENT_REPEATS):
         taskname = "%d_%d_%d_%d" % (a,b,c,task)
         fname = ".res/"+taskname
         if os.path.isfile(fname):
             completed +=1
-            res = loadfile(fname)
+            res, steps = loadfile(fname)
             success += res
             if not res:
                 nosucc.append(taskname)
+            allsteps.append(steps)
         else: 
             nores.append(taskname)
-    return success, completed
+    return success, np.array(allsteps).mean()
 
 
 

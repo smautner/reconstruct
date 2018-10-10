@@ -287,13 +287,13 @@ class MYOPTIMIZER(object):
         for i in range(self.n_iter):
             graphs, status= self.optimize_step(graphs)
             if status:
-                return True
+                return True,i
             if not graphs:
                 logger.debug("ran out of graphs")
-                return False
+                return False,i
 
         costs = self.get_costs(graphs)
-        return self.checkstatus(costs, graphs)
+        return self.checkstatus(costs, graphs),i
 
     def optimize_step(self, graphs):
         # filter, expand, chk duplicates
