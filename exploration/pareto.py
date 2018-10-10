@@ -433,9 +433,6 @@ class MYOPTIMIZER(object):
         logger.debug("costs: best dist: %f (%.2fs)" %  (np.min(costs[:,0]) ,time.time()-timenow))
         return costs
 
-
-
-
     def _get_neighbors(self, graph):
         neighs = list(self.grammar.neighbors(graph))
         for n in neighs:
@@ -447,10 +444,19 @@ class MYOPTIMIZER(object):
             with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
                 return list(concat(p.map(self._get_neighbors,graphs)))
         else:
-            return list(concat(map(self._get_neighbors,graphs)))
+          return list(concat(map(self._get_neighbors,graphs)))
 
-
-
+class lsgg_size_hack(lsgg):
+    def _neighbors_given_cips(self, graph, orig_cips):
+        """iterator over graphs generted by substituting all orig_cips in graph (with cips from grammar)"""
+        grlen = len(graph)
+        for cip in orig_cips:
+            cips_ = self._congruent_cips(cip)
+            cips_ = [c for c in cips_ if c.core_nodes_count+grlen <= self.genmaxsize]
+            for cip_ in cips_:
+                graph_ = self._core_substitution(graph, cip, cip_)
+                if graph_ is not None:
+                    yield graph_
 
 class LocalLandmarksDistanceOptimizer(object):
     """LocalLandmarksDistanceOptimizer."""
@@ -477,7 +483,7 @@ class LocalLandmarksDistanceOptimizer(object):
         self.expand_max_frontier = expand_max_frontier
         self.max_size_frontier = max_size_frontier
         self.output_k_best = output_k_best
-        self.grammar = lsgg(cip_root_all=False, half_step_distance=half_step_distance)
+        self.grammar = lsgg_size_hack(cip_root_all=False, half_step_distance=half_step_distance)
         self.grammar.set_core_size([0, 1, 2])
         if half_step_distance:
             self.grammar.set_core_size([0, 1, 2,3,4])
@@ -530,6 +536,7 @@ class LocalLandmarksDistanceOptimizer(object):
                               reference_graphs,
                               ranked_graphs)
 
+        grammar.genmaxsize = self.calc_graph_max_size(reference_graphs)
         # setup and run optimizer
         pgo = ParetoGraphOptimizer(
             grammar=self.grammar,
@@ -553,6 +560,10 @@ class LocalLandmarksDistanceOptimizer(object):
         else:
             res = pgo.optimize(start_graph_list)
         return res
+
+    def calc_graph_max_size(self,graphs):
+        graphlengths = np.array([len(g)+g.number_of_edges() for g in graphs])
+        return graphlengths.max() + graphlengths.std()
 
 # USAGE:
 '''
