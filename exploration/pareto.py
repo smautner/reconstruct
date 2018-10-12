@@ -1,7 +1,8 @@
 import logging
 import time
 import random
-
+import queue
+import heapq
 import numpy as np
 from eden.util import timeit
 from graphlearn3.lsgg import lsgg
@@ -257,6 +258,7 @@ class MYOPTIMIZER(object):
         self.hash_vectorizer = hashvec(eden.graph.Vectorizer(normalization=False,r=2,d=2),multiproc=multiproc)
         self.cheat = False
         self.seen_graphs = {}
+        self.queues  = [ queue.PriorityQueue(maxsize=200) for i in range(3)]
         if target:
             self.cheat= True
             self.cheater = cheater(target)
@@ -300,13 +302,46 @@ class MYOPTIMIZER(object):
         logger.debug("++++++++  NEW OPTI ROUND +++++++")
         costs = self.get_costs(graphs)
         status = self.checkstatus(costs, graphs)
-        graphs = self.filter_by_cost2(costs, graphs)
+        graphs = self.filter_by_cost(costs, graphs)
         graphs = self._expand_neighbors(graphs)
         graphs = self.duplicate_rm(graphs)
         return graphs, status
 
-    def filter_by_cost2(self,costs,graphs):
-        """same as filter_by_cost but treats size as any other filter"""
+    def filter_by_cost3(self,costs,graphs):
+        """the idea is to use priority queues..."""
+        timenow=time.time()
+        in_count = len(graphs)
+        if in_count< 50:
+            logger.debug('cost_filter: keep all %d graphs' % in_count)
+            return graphs
+
+        # put graphs in queues
+        for q,v,g in zip(self.queues,[costs[i,:] for i in range(3)],graphs):
+            q.put((v,g))
+
+        res = [q.get() for q in self.queues for i in range(10)]
+
+        # DEBUG TO SHOW THE REAL DISTANCE
+        if self.cheat:
+            print ("real distances for all kept graphs, axis 1 are the estimators that selected them")
+            matrix = np.hstack(
+                        [self.cheater.cheat_calc([graphs[z] for z in costs_ranked[:,i]]).reshape(-1,1)
+                        for i in range(costs_ranked.shape[1])]
+                )
+            print(matrix)
+            print (costs[costs_ranked[:,1],0])
+            print (costs[costs_ranked[:,0],0])
+
+            stuff = np.where(matrix == 0.0)
+            if len(stuff[0])>0:
+                from util import util
+                util.dumpfile(graphs[costs_ranked[stuff][0]],"gr")
+                print ("graph dumped")
+
+        logger.debug('cost_filter: got %d graphs, reduced to %d (%.2fs)'%(in_count,len(res),time.time()-timenow))
+        return res
+    def filter_by_cost(self,costs,graphs):
+        """expand top 10 in everything, discard rest"""
         timenow=time.time()
         in_count = len(graphs)
         if in_count< 50:
@@ -341,8 +376,8 @@ class MYOPTIMIZER(object):
         logger.debug('cost_filter: got %d graphs, reduced to %d (%.2fs)'%(in_count,len(res),time.time()-timenow))
         return res
 
-    def filter_by_cost(self,costs,graphs):
-
+    def filter_by_cost2(self,costs,graphs):
+        """like 1, but prefilters by the size estimator, this does not works well if size is known..."""
         timenow=time.time()
         in_count = len(graphs)
         if in_count< 50:
