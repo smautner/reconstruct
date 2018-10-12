@@ -319,7 +319,7 @@ class MYOPTIMIZER(object):
         for q,v,g in zip(self.queues,[costs[i,:] for i in range(3)],graphs):
             q.put((v,g))
 
-        res = [q.get() for q in self.queues for i in range(10)]
+        res = [q.get()[1] for q in self.queues for i in range(10)]
 
         # DEBUG TO SHOW THE REAL DISTANCE
         if self.cheat:
