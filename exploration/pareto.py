@@ -285,6 +285,7 @@ class MYOPTIMIZER(object):
 
         # main cycle
         for i in range(self.n_iter):
+            logger.debug("++++++++  START OPTIMIZATION STEP %d +++++++" % i)
             graphs, status= self.optimize_step(graphs)
             if status:
                 return True,i
@@ -297,7 +298,6 @@ class MYOPTIMIZER(object):
 
     def optimize_step(self, graphs):
         # filter, expand, chk duplicates
-        logger.debug("++++++++  NEW OPTI ROUND +++++++")
         costs = self.get_costs(graphs)
         status = self.checkstatus(costs, graphs)
         graphs = self.filter_by_cost2(costs, graphs)
@@ -451,8 +451,8 @@ class lsgg_size_hack(lsgg):
         """iterator over graphs generted by substituting all orig_cips in graph (with cips from grammar)"""
         grlen = len(graph)
         for cip in orig_cips:
-            cips_ = self._congruent_cips(cip)
-            cips_ = [c for c in cips_ if c.core_nodes_count+grlen <= self.genmaxsize]
+            cips_1 = self._congruent_cips(cip)
+            cips_ = [c for c in cips_1 if c.core_nodes_count+grlen <= self.genmaxsize]
             for cip_ in cips_:
                 graph_ = self._core_substitution(graph, cip, cip_)
                 if graph_ is not None:
@@ -536,7 +536,7 @@ class LocalLandmarksDistanceOptimizer(object):
                               reference_graphs,
                               ranked_graphs)
 
-        grammar.genmaxsize = self.calc_graph_max_size(reference_graphs)
+        self.grammar.genmaxsize = self.calc_graph_max_size(reference_graphs)
         # setup and run optimizer
         pgo = ParetoGraphOptimizer(
             grammar=self.grammar,
@@ -563,7 +563,13 @@ class LocalLandmarksDistanceOptimizer(object):
 
     def calc_graph_max_size(self,graphs):
         graphlengths = np.array([len(g)+g.number_of_edges() for g in graphs])
-        return graphlengths.max() + graphlengths.std()
+
+        val =  graphlengths.max() + 2*graphlengths.std()
+        logger.debug("debug values for size cutoff calculation")
+        logger.debug(val)
+        logger.debug(graphlengths)
+        return val
+        
 
 # USAGE:
 '''

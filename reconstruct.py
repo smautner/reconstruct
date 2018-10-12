@@ -92,8 +92,8 @@ instancemakerparams = [{ "n_landmarks":25, "n_neighbors":50}]
 params_opt = {
     'keyorder' :  ["half_step_distance",'n_iter','multiproc',"add_grammar_rules","keeptop"],
     "half_step_distance" : [True], # true clearly supperior
-    "n_iter":[20], # 5 just for ez problems
-    "keeptop":[20], # 20 seems enough
+    "n_iter":[12], # 5 just for ez problems
+    "keeptop":[15], # 20 seems enough
     'multiproc': [False],
     "add_grammar_rules":[True]
 }
@@ -119,6 +119,7 @@ if __name__=="__main__":
         make_task_file()
         exit()
     else:
+        print(sys.argv[-1])
         args = list(map(int, sys.argv[-1].strip().split(" ")))
 
 
@@ -209,8 +210,9 @@ def report():
 
     import pprint
     print (pandas.DataFrame(dat).to_string())
-    print ("nores",nores)
-    print ('nosucc',nosucc)
+    mod = lambda x : str(x).replace("_",' ')
+    print ("nores",mod(nores))
+    print ('nosucc',mod(nosucc))
     #print (pandas.DataFrame(dat))df.describe().to_string()
     '''
     print ("instancemaker params:")
