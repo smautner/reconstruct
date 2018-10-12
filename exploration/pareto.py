@@ -316,8 +316,9 @@ class MYOPTIMIZER(object):
             return graphs
 
         # put graphs in queues
-        for q,v,g in zip(self.queues,[costs[i,:] for i in range(3)],graphs):
-            q.put((v,g))
+        for qu,cos,gr in zip(self.queues,[costs[i,:] for i in range(3)],[graphs]*3):
+            for c,g in zip(cos,gr):
+                q.put((c,g))
 
         res = [q.get()[1] for q in self.queues for i in range(10)]
 
