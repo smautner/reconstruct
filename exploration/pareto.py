@@ -258,7 +258,7 @@ class MYOPTIMIZER(object):
         self.hash_vectorizer = hashvec(eden.graph.Vectorizer(normalization=False,r=2,d=2),multiproc=multiproc)
         self.cheat = False
         self.seen_graphs = {}
-        self.queues  = [ queue.PriorityQueue(maxsize=200) for i in range(3)]
+        self.queues  = [ list() for i in range(4)]
         if target:
             self.cheat= True
             self.cheater = cheater(target)
@@ -316,12 +316,16 @@ class MYOPTIMIZER(object):
             return graphs
 
         # put graphs in queues
-        for qu,cos,gr in zip(self.queues,[costs[i,:] for i in range(3)],[graphs]*3):
-            for c,g in zip(cos,gr):
-                q.put((c,g))
+        for qu,cos in zip(self.queues,[costs[:,i] for i in range(4)]): # one could also use the last one...
+            for c,g in zip(cos,graphs):
+                heapq.heappush(qu,(c,random.random(),g))
 
-        res = [q.get()[1] for q in self.queues for i in range(10)]
-
+        for q in self.queues:
+            q=q[:2047]
+        
+        res = [heapq.heappop(q)[2] for q in self.queues for i in range(self.keeptop)]
+        
+        #res = self.duplicate_rm(res)
         # DEBUG TO SHOW THE REAL DISTANCE
         if self.cheat:
             print ("real distances for all kept graphs, axis 1 are the estimators that selected them")
@@ -511,8 +515,10 @@ class LocalLandmarksDistanceOptimizer(object):
             keeptop= 20,
             output_k_best=None,
             add_grammar_rules = False,
+            graph_size_limiter = 9999,
             adapt_grammar_n_iter=None, multiproc=False):
         """init."""
+        self.graph_size_limiter = graph_size_limiter
         self.adapt_grammar_n_iter = adapt_grammar_n_iter
         self.expand_max_n_neighbors = expand_max_n_neighbors
         self.n_iter = n_iter
@@ -600,7 +606,7 @@ class LocalLandmarksDistanceOptimizer(object):
     def calc_graph_max_size(self,graphs):
         graphlengths = np.array([len(g)+g.number_of_edges() for g in graphs])
 
-        val =  graphlengths.max() + 2*graphlengths.std()
+        val =  graphlengths.max() + self.graph_size_limiter*graphlengths.std()
         logger.debug("debug values for size cutoff calculation")
         logger.debug(val)
         logger.debug(graphlengths)

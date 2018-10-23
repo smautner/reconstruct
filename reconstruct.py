@@ -30,18 +30,23 @@ configure_logging(logging.getLogger(),verbosity=2)
 logger = logging.getLogger(__name__)
 
 
+
+#############################################
+##  OPTIONS FOR GRAPHS
+##########################################
+
 # 1. param dict
 
 params_graphs = {
     'keyorder' :  ["number_of_graphs", "size_of_graphs","node_labels","edge_labels","allow_cycles","labeldistribution","maxdeg","rrg_iter"],
     'allow_cycles':[False], # cycles are very bad
-    'number_of_graphs' : [20, 30],
+    'number_of_graphs' : [30],
     'size_of_graphs' :[8] ,
     'node_labels' : [2,8],
     'edge_labels' : [2,4], # using 5 here mega ga fails
     'labeldistribution': ['uniform'] ,# real is unnecessary
     'maxdeg':[3],
-    'rrg_iter':[2,3]# rule rand graphs , iter argument
+    'rrg_iter':[3]# rule rand graphs , iter argument
 }
 
 # 2. function paramdict to tasks
@@ -75,27 +80,32 @@ def make_task_file():
 
 
 
-
+######################
+#  OPTIONS FOR PROBLEM GENERATOR
+##########################
 
 # call with reconstruct.py TASKID  REPEATID
 
 
 params_insta= {
     'keyorder' :  ["n_landmarks", "n_neighbors"],
-    'n_landmarks' : [10,20], # seems to help a little with larger problems, >3 recommended
-    'n_neighbors' :[20,30] # seems to not matter much 25 and 50 look the same, 15 and 75 also
-}
-#maketasks(params_insta)
-instancemakerparams = [{ "n_landmarks":25, "n_neighbors":50}]
+    'n_landmarks' : [25], # seems to help a little with larger problems, >3 recommended
+    'n_neighbors' :[50] # seems to not matter much 25 and 50 look the same, 15 and 75 also
+    }
+instancemakerparams =maketasks(params_insta)
 
+############################
+#  OPTIONS FOR SOLVER 
+##############################
 
 params_opt = {
-    'keyorder' :  ["half_step_distance",'n_iter','multiproc',"add_grammar_rules","keeptop"],
+    'keyorder' :  ["half_step_distance",'n_iter','multiproc',"add_grammar_rules","keeptop","graph_size_limiter"],
     "half_step_distance" : [True], # true clearly supperior
-    "n_iter":[12], # 5 just for ez problems
-    "keeptop":[15], # 20 seems enough
+    "n_iter":[10, 15,20,25], # 5 just for ez problems
+    "keeptop":[10, 15,20,25], # 20 seems enough
     'multiproc': [False],
-    "add_grammar_rules":[True]
+    "add_grammar_rules":[True],
+    "graph_size_limiter":[1]
 }
 
 Optimizerparams = maketasks(params_opt)
@@ -177,12 +187,16 @@ def getvalue(a,b,c, nores, nosucc): # nosucc and nores are just collecting stats
             completed +=1
             res, steps = loadfile(fname)
             success += res
-            if not res:
+            if not res:   # FAIL
                 nosucc.append(taskname)
-            allsteps.append(steps)
+            else:       # success -> remember step count
+                allsteps.append(steps)
         else: 
             nores.append(taskname)
-    return success, np.array(allsteps).mean()
+    allsteps = np.array(allsteps)
+    return success,  allsteps.max()
+
+
 
 
 
@@ -190,14 +204,22 @@ def getvalue(a,b,c, nores, nosucc): # nosucc and nores are just collecting stats
 def imtostr(im):
     d=instancemakerparams[im]
     return "marks:%d neigh:%d" % (d["n_landmarks"], d["n_neighbors"])
+#####################
+# formatting for solver options 
+#######################
 def optitostr(op):
     d=Optimizerparams[op]
     return "top:%d iter:%d" % (d["keeptop"], d["n_iter"])
+    #return "grsizelimit:%d"  % (d["graph_size_limiter"])
+
+###################
+# formatting of y axis -- the graphs
+##############################
 def grtostr(gr):
     d = tasklist[gr]
     #return "Cyc:%d elab:%d nlab:%d siz:%d dist:%s" % (d['allow_cycles'],d['edge_labels'],d['node_labels'],d['size_of_graphs'],d['labeldistribution'][0])
     #return tuple(("Cyc:%d elab:%d nlab:%d siz:%d dist:%s" % (d['allow_cycles'],d['edge_labels'],d['node_labels'],d['size_of_graphs'],d['labeldistribution'][0])).split(" "))
-    return tuple(("numgr:%d elab:%d nlab:%d rrg_iter:%d" % (d['number_of_graphs'],d['edge_labels'],d['node_labels'],d['rrg_iter'])).split(" "))
+    return tuple(("elab:%d nlab:%d" % (d['edge_labels'],d['node_labels'])).split(" "))
 
 def report():
     dat= defaultdict(dict)
@@ -206,7 +228,7 @@ def report():
     for a in range(len(tasklist)):
         for b in range(len(instancemakerparams)):
             for c in range(len(Optimizerparams)):
-                dat[(imtostr(b),optitostr(c))][grtostr(a)] = getvalue(a,b,c, nores, nosucc)
+                dat[grtostr(a)][(imtostr(b),optitostr(c))] = getvalue(a,b,c, nores, nosucc)
 
     import pprint
     print (pandas.DataFrame(dat).to_string())
