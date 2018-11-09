@@ -40,13 +40,13 @@ logger = logging.getLogger(__name__)
 params_graphs = {
     'keyorder' :  ["number_of_graphs", "size_of_graphs","node_labels","edge_labels","allow_cycles","labeldistribution","maxdeg","rrg_iter"],
     'allow_cycles':[False], # cycles are very bad
-    'number_of_graphs' : [30],
+    'number_of_graphs': [20,30,40],
     'size_of_graphs' :[8] ,
-    'node_labels' : [2,8],
-    'edge_labels' : [2,4], # using 5 here mega ga fails
+    'node_labels' : [4,8,10,12],
+    'edge_labels' : [4,6], # using 5 here mega ga fails
     'labeldistribution': ['uniform'] ,# real is unnecessary
     'maxdeg':[3],
-    'rrg_iter':[3]# rule rand graphs , iter argument
+    'rrg_iter':[3,4]# rule rand graphs , iter argument
 }
 
 # 2. function paramdict to tasks
@@ -101,8 +101,8 @@ instancemakerparams =maketasks(params_insta)
 params_opt = {
     'keyorder' :  ["half_step_distance",'n_iter','multiproc',"add_grammar_rules","keeptop","graph_size_limiter"],
     "half_step_distance" : [True], # true clearly supperior
-    "n_iter":[10, 15,20,25], # 5 just for ez problems
-    "keeptop":[10, 15,20,25], # 20 seems enough
+    "n_iter":[20], # 5 just for ez problems
+    "keeptop":[20], # 20 seems enough
     'multiproc': [False],
     "add_grammar_rules":[True],
     "graph_size_limiter":[1]
@@ -178,7 +178,7 @@ if __name__=="__main__":
 
 def getvalue(a,b,c, nores, nosucc): # nosucc and nores are just collecting stats
     completed = 0
-    allsteps=[]
+    allsteps=[-1]
     success = 0
     for task in range(EXPERIMENT_REPEATS):
         taskname = "%d_%d_%d_%d" % (a,b,c,task)
@@ -219,8 +219,8 @@ def grtostr(gr):
     d = tasklist[gr]
     #return "Cyc:%d elab:%d nlab:%d siz:%d dist:%s" % (d['allow_cycles'],d['edge_labels'],d['node_labels'],d['size_of_graphs'],d['labeldistribution'][0])
     #return tuple(("Cyc:%d elab:%d nlab:%d siz:%d dist:%s" % (d['allow_cycles'],d['edge_labels'],d['node_labels'],d['size_of_graphs'],d['labeldistribution'][0])).split(" "))
-    return tuple(("elab:%d nlab:%d" % (d['edge_labels'],d['node_labels'])).split(" "))
-
+    #return tuple(("elab:%d nlab:%d" % (d['edge_labels'],d['node_labels'])).split(" "))
+    return tuple(("elab:%d nlab:%d graphs:%d rrg_it:%d" % (d['edge_labels'],d['node_labels'],d['number_of_graphs'],d['rrg_iter'])).split(" "))
 def report():
     dat= defaultdict(dict)
     nores = []
@@ -228,7 +228,9 @@ def report():
     for a in range(len(tasklist)):
         for b in range(len(instancemakerparams)):
             for c in range(len(Optimizerparams)):
-                dat[grtostr(a)][(imtostr(b),optitostr(c))] = getvalue(a,b,c, nores, nosucc)
+                #dat[(imtostr(b),optitostr(c))][grtostr(a)]= getvalue(a,b,c, nores, nosucc)
+                zomg = grtostr(a)
+                dat[zomg[:2]][zomg[2:]]= getvalue(a,b,c, nores, nosucc)
 
     import pprint
     print (pandas.DataFrame(dat).to_string())
