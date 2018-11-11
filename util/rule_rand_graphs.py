@@ -13,7 +13,7 @@ def rule_rand_graphs(input_set, numgr =100, iter= 1):
 
 
     # make grammar, fit on input
-    grammar = lsgg.lsgg(decomposition_args={"radius_list": [0, 1],
+    grammar = lsgg.lsgg(decomposition_args={"radius_list": [1,2],
                                      "thickness_list": [ 1] },
                  filter_args={"min_cip_count": 1,
                               "min_interface_count": 2},
