@@ -136,7 +136,7 @@ if __name__=="__main__":
         # the queickest way to hack this while still being compatible with the old crap 
         # is using the maketasts function defined above...
         arg = int(sys.argv[-1])-1
-        params_args = {keyorder:[0,1,2,3],
+        params_args = {"keyorder":[0,1,2,3],
                         0:range(len(tasklist)),
                         1:range(len(instancemakerparams)),
                         2:range(len(Optimizerparams)),
