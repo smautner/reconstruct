@@ -40,13 +40,13 @@ logger = logging.getLogger(__name__)
 params_graphs = {
     'keyorder' :  ["number_of_graphs", "size_of_graphs","node_labels","edge_labels","allow_cycles","labeldistribution","maxdeg","rrg_iter"],
     'allow_cycles':[False], # cycles are very bad
-    'number_of_graphs': [30],
+    'number_of_graphs': [20,40],
     'size_of_graphs' :[8] ,
     'node_labels' : [4,8],
-    'edge_labels' : [2,4], # using 5 here mega ga fails
+    'edge_labels' : [2,4,6], # using 5 here mega ga fails
     'labeldistribution': ['uniform'] ,# real is unnecessary
     'maxdeg':[3],
-    'rrg_iter':[2,3]# rule rand graphs , iter argument
+    'rrg_iter':[2,3,4]# rule rand graphs , iter argument
 }
 
 # 2. function paramdict to tasks
@@ -101,11 +101,11 @@ instancemakerparams =maketasks(params_insta)
 params_opt = {
     'keyorder' :  ["half_step_distance",'n_iter','multiproc',"add_grammar_rules","keeptop","graph_size_limiter"],
     "half_step_distance" : [True], # true clearly supperior
-    "n_iter":[10,25], # 5 just for ez problems
-    "keeptop":[10,25], # 20 seems enough
+    "n_iter":[20], # 5 just for ez problems
+    "keeptop":[10], # 20 seems enough
     'multiproc': [False],
     "add_grammar_rules":[True],
-    "graph_size_limiter":[1,2]
+    "graph_size_limiter":[1]
 }
 
 Optimizerparams = maketasks(params_opt)
@@ -129,8 +129,23 @@ if __name__=="__main__":
         make_task_file()
         exit()
     else:
-        print(sys.argv[-1])
-        args = list(map(int, sys.argv[-1].strip().split(" ")))
+        #print(sys.argv[-1])
+        #args = list(map(int, sys.argv[-1].strip().split(" ")))
+        
+        # ok need to run this on the cluster where i only have a task id...
+        # the queickest way to hack this while still being compatible with the old crap 
+        # is using the maketasts function defined above...
+        arg = int(sys.argv[-1])-1
+        params_args = {keyorder:[0,1,2,3],
+                        0:range(len(tasklist)),
+                        1:range(len(instancemakerparams)),
+                        2:range(len(Optimizerparams)),
+                        3:range(EXPERIMENT_REPEATS),
+                        }
+        args = maketasks(params_args)[arg]
+        print (args, arg)
+
+        
 
 
 
@@ -152,7 +167,7 @@ if __name__=="__main__":
     logger.debug(tasklist[task_id])
     logger.debug(optimizerargs)
 
-    run_id =args[3] # 10
+    run_id =args[3] 
 
     im =  InstanceMaker(**im_params).fit(graphs, EXPERIMENT_REPEATS)
 
