@@ -199,28 +199,41 @@ def getvalue(a,b,c, nores, nosucc): # nosucc and nores are just collecting stats
 
 
 
-
+#####################
+# Output formatters... 
+#######################
+def defaultformatter(paramsdict, instance):
+    res =[]
+    for k in paramsdict['keyorder']:
+        if len(paramsdict[k] )> 1:
+            #  interesting key
+            res.append("%s:%d " % ( k[:4],instance[k]) )
+    return tuple(res)
 
 def imtostr(im):
     d=instancemakerparams[im]
     return "marks:%d neigh:%d" % (d["n_landmarks"], d["n_neighbors"])
-#####################
-# formatting for solver options 
-#######################
+
 def optitostr(op):
     d=Optimizerparams[op]
-    return "top:%d iter:%d" % (d["keeptop"], d["n_iter"])
+    return defaultformatter(params_opt,d)
+    #return "top:%d iter:%d" % (d["keeptop"], d["n_iter"])
     #return "grsizelimit:%d"  % (d["graph_size_limiter"])
 
-###################
-# formatting of y axis -- the graphs
-##############################
 def grtostr(gr):
     d = tasklist[gr]
+    return defaultformatter(params_graphs,d)
     #return "Cyc:%d elab:%d nlab:%d siz:%d dist:%s" % (d['allow_cycles'],d['edge_labels'],d['node_labels'],d['size_of_graphs'],d['labeldistribution'][0])
     #return tuple(("Cyc:%d elab:%d nlab:%d siz:%d dist:%s" % (d['allow_cycles'],d['edge_labels'],d['node_labels'],d['size_of_graphs'],d['labeldistribution'][0])).split(" "))
     #return tuple(("elab:%d nlab:%d" % (d['edge_labels'],d['node_labels'])).split(" "))
-    return tuple(("elab:%d nlab:%d graphs:%d rrg_it:%d" % (d['edge_labels'],d['node_labels'],d['number_of_graphs'],d['rrg_iter'])).split(" "))
+    #return tuple(("elab:%d nlab:%d graphs:%d rrg_it:%d" % (d['edge_labels'],d['node_labels'],d['number_of_graphs'],d['rrg_iter'])).split(" "))
+
+
+
+
+##########################3
+#   make report :) 
+##########################
 def report():
     dat= defaultdict(dict)
     nores = []
@@ -229,8 +242,7 @@ def report():
         for b in range(len(instancemakerparams)):
             for c in range(len(Optimizerparams)):
                 #dat[(imtostr(b),optitostr(c))][grtostr(a)]= getvalue(a,b,c, nores, nosucc)
-                zomg = grtostr(a)
-                dat[zomg[:2]][zomg[2:]]= getvalue(a,b,c, nores, nosucc)
+                dat[optitostr(c)][grtostr(a)]= getvalue(a,b,c, nores, nosucc)
 
     import pprint
     print (pandas.DataFrame(dat).to_string())
