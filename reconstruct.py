@@ -142,8 +142,9 @@ if __name__=="__main__":
                         2:range(len(Optimizerparams)),
                         3:range(EXPERIMENT_REPEATS),
                         }
-        args = maketasks(params_args)[arg]
-        print (args, arg)
+        args = maketasks(params_args)
+        args=args[arg]
+
 
         
 

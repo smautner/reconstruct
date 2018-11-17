@@ -162,8 +162,8 @@ class InstancesDistanceCostEstimator(pvectorize):
     def _avg_distance_diff(self, vector):
         distances = euclidean_distances(vector, self.reference_vecs)[0]
         d = self.desired_distances
-        dist_diff = (distances - d)
-        avg_dist_diff = np.mean(np.absolute(dist_diff))
+        dist_diff = (distances - d)**2
+        avg_dist_diff = np.mean(dist_diff)
         return avg_dist_diff
 
     def decision_function(self, graphs):
