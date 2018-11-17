@@ -105,7 +105,7 @@ params_opt = {
     "keeptop":[10], # 20 seems enough
     'multiproc': [False],
     "add_grammar_rules":[True],
-    "squared_error": [True, False],
+    "squared_error": [True],
     "graph_size_limiter":[1]
 }
 
