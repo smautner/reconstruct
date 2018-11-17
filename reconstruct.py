@@ -63,17 +63,13 @@ tasklist  = maketasks(params_graphs )
 
 
 # 3. loop over task
-
 def make_task_file():
-    
     def maketsk(args):
         rrg_iter = args.pop("rrg_iter")
         graphs = rg.make_graphs_static(**args)
         g,_ = rrg.rule_rand_graphs(graphs, numgr=500,iter=rrg_iter) 
         return g #+ graphs
-
     dumpfile([maketsk(args) for args in tasklist], ".tasks")
-
     #dumpfile([ rg.make_graphs_static(maxdeg=3, **args) for args in tasklist], ".tasks")
 
 
@@ -83,10 +79,7 @@ def make_task_file():
 ######################
 #  OPTIONS FOR PROBLEM GENERATOR
 ##########################
-
 # call with reconstruct.py TASKID  REPEATID
-
-
 params_insta= {
     'keyorder' :  ["n_landmarks", "n_neighbors"],
     'n_landmarks' : [25], # seems to help a little with larger problems, >3 recommended
@@ -97,7 +90,6 @@ instancemakerparams =maketasks(params_insta)
 ############################
 #  OPTIONS FOR SOLVER 
 ##############################
-
 params_opt = {
     'keyorder' :  ["half_step_distance",'n_iter','multiproc',"add_grammar_rules","keeptop","graph_size_limiter"],
     "half_step_distance" : [True], # true clearly supperior
@@ -107,7 +99,6 @@ params_opt = {
     "add_grammar_rules":[True],
     "graph_size_limiter":[1]
 }
-
 Optimizerparams = maketasks(params_opt)
 
 
@@ -123,7 +114,6 @@ def reconstruct_and_evaluate(target_graph,
 
 
 if __name__=="__main__":
-
     if len(sys.argv)==1:
         print("writing task file...")
         make_task_file()
@@ -149,10 +139,7 @@ if __name__=="__main__":
 
 
 
-    resu=[]
     task = loadfile(".tasks")
-
-
     task_id = args[0] # 16    the graph configurations
     graphs = task [task_id]
 
@@ -168,9 +155,7 @@ if __name__=="__main__":
     logger.debug(optimizerargs)
 
     run_id =args[3] 
-
     im =  InstanceMaker(**im_params).fit(graphs, EXPERIMENT_REPEATS)
-
     res = im.get(run_id)
     landmark_graphs, desired_distances, ranked_graphs, target_graph = res
     result = reconstruct_and_evaluate( target_graph,
