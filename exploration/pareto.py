@@ -516,6 +516,7 @@ class LocalLandmarksDistanceOptimizer(object):
             output_k_best=None,
             add_grammar_rules = False,
             graph_size_limiter = 9999,
+            squared_error = False,
             adapt_grammar_n_iter=None, multiproc=False):
         """init."""
         self.graph_size_limiter = graph_size_limiter
@@ -532,7 +533,7 @@ class LocalLandmarksDistanceOptimizer(object):
         self.grammar.set_context(context_size)
         #self.grammar.set_min_count(min_count) interfacecount 1 makes no sense
         self.grammar.filter_args['min_cip_count'] = min_count
-        self.multiobj_est = costs.DistRankSizeCostEstimator(r=r, d=d, multiproc=multiproc)
+        self.multiobj_est = costs.DistRankSizeCostEstimator(r=r, d=d, multiproc=multiproc, squared_error=squared_error)
         self.multiproc=multiproc
         self.add_grammar_rules = add_grammar_rules
         self.keeptop =keeptop
