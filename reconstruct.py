@@ -242,16 +242,4 @@ def report():
     print ('nosucc',mod(nosucc))
     print ("sumsuccess:", sum([int(a) for c in dat.values() for a,b in c.values()]))
     print ("maxrnd:", max([int(b) for c in dat.values() for a,b in c.values()]))
-    #print (pandas.DataFrame(dat))df.describe().to_string()
-    '''
-    print ("instancemaker params:")
-    pprint.pprint(instancemakerparams) 
-    print ("optimizer params:")
-    pprint.pprint(Optimizerparams) 
-    print ("graph configurations:")
-    pprint.pprint(tasklist  )
-
-    '''
-
-
 
