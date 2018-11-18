@@ -223,6 +223,7 @@ def grtostr(gr):
     #return tuple(("Cyc:%d elab:%d nlab:%d siz:%d dist:%s" % (d['allow_cycles'],d['edge_labels'],d['node_labels'],d['size_of_graphs'],d['labeldistribution'][0])).split(" "))
     #return tuple(("elab:%d nlab:%d" % (d['edge_labels'],d['node_labels'])).split(" "))
     return tuple(("elab:%d nlab:%d graphs:%d rrg_it:%d" % (d['edge_labels'],d['node_labels'],d['number_of_graphs'],d['rrg_iter'])).split(" "))
+
 def report():
     dat= defaultdict(dict)
     nores = []
@@ -239,6 +240,8 @@ def report():
     mod = lambda x : str(x).replace("_",' ')
     print ("nores",mod(nores))
     print ('nosucc',mod(nosucc))
+    print ("sumsuccess:", sum([int(a) for c in dat.values() for a,b in c.values()]))
+    print ("maxrnd:", max([int(b) for c in dat.values() for a,b in c.values()]))
     #print (pandas.DataFrame(dat))df.describe().to_string()
     '''
     print ("instancemaker params:")
@@ -249,8 +252,6 @@ def report():
     pprint.pprint(tasklist  )
 
     '''
-
-
 
 
 
