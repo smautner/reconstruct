@@ -1,6 +1,6 @@
 
 
-for i in (seq 0 719)
+for i in (seq 1 640)
     qsub -q short torq_single.sh -F "$i"
 end
 

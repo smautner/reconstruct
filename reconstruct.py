@@ -40,13 +40,13 @@ logger = logging.getLogger(__name__)
 params_graphs = {
     'keyorder' :  ["number_of_graphs", "size_of_graphs","node_labels","edge_labels","allow_cycles","labeldistribution","maxdeg","rrg_iter"],
     'allow_cycles':[False], # cycles are very bad
-    'number_of_graphs': [20,40],
+    'number_of_graphs': [500,2000],
     'size_of_graphs' :[8] ,
     'node_labels' : [4,8],
-    'edge_labels' : [2,4,6], # using 5 here mega ga fails
+    'edge_labels' : [2,4], # using 5 here mega ga fails
     'labeldistribution': ['uniform'] ,# real is unnecessary
     'maxdeg':[3],
-    'rrg_iter':[2,3,4]# rule rand graphs , iter argument
+    'rrg_iter':[2]# rule rand graphs , iter argument
 }
 
 # 2. function paramdict to tasks
@@ -67,8 +67,8 @@ def make_task_file():
     def maketsk(args):
         rrg_iter = args.pop("rrg_iter")
         graphs = rg.make_graphs_static(**args)
-        g,_ = rrg.rule_rand_graphs(graphs, numgr=500,iter=rrg_iter) 
-        return g #+ graphs
+        #g,_ = rrg.rule_rand_graphs(graphs, numgr=500,iter=rrg_iter) 
+        return graphs
     dumpfile([maketsk(args) for args in tasklist], ".tasks")
     #dumpfile([ rg.make_graphs_static(maxdeg=3, **args) for args in tasklist], ".tasks")
 
@@ -93,12 +93,12 @@ instancemakerparams =maketasks(params_insta)
 params_opt = {
     'keyorder' :  ["half_step_distance",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter"],
     "half_step_distance" : [True], # true clearly supperior
-    "n_iter":[20], # 5 just for ez problems
-    "keeptop":[10], # 20 seems enough
+    "n_iter":[15,20], # 5 just for ez problems
+    "keeptop":[10,15], # 20 seems enough
     'multiproc': [False],
     "add_grammar_rules":[True],
     "squared_error": [False], # False slightly better 590:572 
-    "graph_size_limiter":[1]
+    "graph_size_limiter":[ lambda x: x.mean()+5 ]
 }
 Optimizerparams = maketasks(params_opt)
 

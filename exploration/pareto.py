@@ -491,8 +491,9 @@ class lsgg_size_hack(lsgg):
         """iterator over graphs generted by substituting all orig_cips in graph (with cips from grammar)"""
         grlen = len(graph)
         for cip in orig_cips:
-            cips_1 = self._congruent_cips(cip)
-            cips_ = [c for c in cips_1 if c.core_nodes_count+grlen <= self.genmaxsize]
+            congruent_cips = self._congruent_cips(cip)
+            cips_ = [nucip for nucip in congruent_cips 
+                        if (nucip.core_nodes_count + grlen - cip.core_nodes_count) <= self.genmaxsize]
             for cip_ in cips_:
                 graph_ = self._core_substitution(graph, cip, cip_)
                 if graph_ is not None:
@@ -515,7 +516,7 @@ class LocalLandmarksDistanceOptimizer(object):
             keeptop= 20,
             output_k_best=None,
             add_grammar_rules = False,
-            graph_size_limiter = 9999,
+            graph_size_limiter = lambda x: 999,
             squared_error = False,
             adapt_grammar_n_iter=None, multiproc=False):
         """init."""
@@ -607,7 +608,7 @@ class LocalLandmarksDistanceOptimizer(object):
     def calc_graph_max_size(self,graphs):
         graphlengths = np.array([len(g)+g.number_of_edges() for g in graphs])
 
-        val =  graphlengths.max() + self.graph_size_limiter*graphlengths.std()
+        val  = self.graph_size_limiter(graphlengths)
         logger.debug("debug values for size cutoff calculation")
         logger.debug(val)
         logger.debug(graphlengths)
