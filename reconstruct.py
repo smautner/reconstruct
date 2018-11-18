@@ -97,7 +97,7 @@ params_opt = {
     "keeptop":[10], # 20 seems enough
     'multiproc': [False],
     "add_grammar_rules":[True],
-    "squared_error": [True],
+    "squared_error": [False], # False slightly better 590:572 
     "graph_size_limiter":[1]
 }
 Optimizerparams = maketasks(params_opt)
