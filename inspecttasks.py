@@ -1,4 +1,10 @@
 import reconstruct as r
+
+s=r.loadfile('.chemtask')
+print (len(s))
+exit()
+
+
 graphsets = r.loadfile(".tasks")
 import numpy as np
 from structout import gprint

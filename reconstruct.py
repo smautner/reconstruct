@@ -101,7 +101,7 @@ params_opt = {
     'multiproc': [False],
     "add_grammar_rules":[True],
     "squared_error": [False], # False slightly better 590:572 
-    "graph_size_limiter":[ lambda x: x.mean()+5 ]
+    "graph_size_limiter":[ lambda x: x.mean()+(int(x.std()) or 5) ]
 }
 Optimizerparams = maketasks(params_opt)
 
