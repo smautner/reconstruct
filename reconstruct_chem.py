@@ -5,6 +5,25 @@ import os
 import sys
 import numpy as np
 
+
+
+
+
+######################################
+### THIS IS THE MEGA HACK FOR CHEM GRAPHS
+#####################################
+
+
+
+
+
+
+
+
+
+
+
+
 from util.util import jdumpfile, jloadfile, InstanceMaker, dumpfile, loadfile
 
 from util import rule_rand_graphs as rrg
@@ -14,7 +33,7 @@ EXPERIMENT_REPEATS = 20
 USAGE:
     python3 reconstruct.py  to generate problem instances
     fish runall.sh  to run with parallel
-    python3 -c "import reconstruct as r; r.report()"   to see result
+    python3 -c "import reconstruct_chem as r; r.report()"   to see result
 '''
 
 
@@ -40,13 +59,13 @@ logger = logging.getLogger(__name__)
 params_graphs = {
     'keyorder' :  ["number_of_graphs", "size_of_graphs","node_labels","edge_labels","allow_cycles","labeldistribution","maxdeg","rrg_iter"],
     'allow_cycles':[False], # cycles are very bad
-    'number_of_graphs': [500,2000],
+    'number_of_graphs': [20,40],
     'size_of_graphs' :[8] ,
     'node_labels' : [4,8],
-    'edge_labels' : [2,4], # using 5 here mega ga fails
+    'edge_labels' : [2,4,6], # using 5 here mega ga fails
     'labeldistribution': ['uniform'] ,# real is unnecessary
     'maxdeg':[3],
-    'rrg_iter':[2]# rule rand graphs , iter argument
+    'rrg_iter':[2,3,4]# rule rand graphs , iter argument
 }
 
 # 2. function paramdict to tasks
@@ -63,13 +82,30 @@ tasklist  = maketasks(params_graphs )
 
 
 # 3. loop over task
+
+import json
+import random
+import networkx as nx
+from networkx.readwrite.json_graph import node_link_graph
 def make_task_file():
-    def maketsk(args):
-        rrg_iter = args.pop("rrg_iter")
-        graphs = rg.make_graphs_static(**args)
-        #g,_ = rrg.rule_rand_graphs(graphs, numgr=500,iter=rrg_iter) 
-        return graphs
-    dumpfile([maketsk(args) for args in tasklist], ".tasks")
+
+    with open("AID1835Active.json","r") as f:
+            stuff = f.read()
+    s1 = json.loads(stuff)
+    s1= [node_link_graph(s) for s in s1]
+    
+    for g in s1:
+        g.graph = {}
+
+    random.shuffle(s1)
+    dumpfile(s1 , ".chemtask")
+
+    from structout import gprint
+    g=s1[0]
+    print (g.__dict__)
+    pos=nx.drawing.nx_agraph.graphviz_layout(g, prog='neato', args="-Gratio='2'")
+
+    gprint(g)
     #dumpfile([ rg.make_graphs_static(maxdeg=3, **args) for args in tasklist], ".tasks")
 
 
@@ -79,7 +115,10 @@ def make_task_file():
 ######################
 #  OPTIONS FOR PROBLEM GENERATOR
 ##########################
+
 # call with reconstruct.py TASKID  REPEATID
+
+
 params_insta= {
     'keyorder' :  ["n_landmarks", "n_neighbors"],
     'n_landmarks' : [25], # seems to help a little with larger problems, >3 recommended
@@ -90,16 +129,17 @@ instancemakerparams =maketasks(params_insta)
 ############################
 #  OPTIONS FOR SOLVER 
 ##############################
+
 params_opt = {
-    'keyorder' :  ["half_step_distance",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter"],
+    'keyorder' :  ["half_step_distance",'n_iter','multiproc',"add_grammar_rules","keeptop","graph_size_limiter"],
     "half_step_distance" : [True], # true clearly supperior
-    "n_iter":[15,20], # 5 just for ez problems
-    "keeptop":[10,15], # 20 seems enough
+    "n_iter":[20], # 5 just for ez problems
+    "keeptop":[10], # 20 seems enough
     'multiproc': [False],
     "add_grammar_rules":[True],
-    "squared_error": [False], # False slightly better 590:572 
-    "graph_size_limiter":[ lambda x: x.mean()+5 ]
+    "graph_size_limiter":[1]
 }
+
 Optimizerparams = maketasks(params_opt)
 
 
@@ -115,6 +155,7 @@ def reconstruct_and_evaluate(target_graph,
 
 
 if __name__=="__main__":
+
     if len(sys.argv)==1:
         print("writing task file...")
         make_task_file()
@@ -127,37 +168,34 @@ if __name__=="__main__":
         # the queickest way to hack this while still being compatible with the old crap 
         # is using the maketasts function defined above...
         arg = int(sys.argv[-1])-1
-        params_args = {"keyorder":[0,1,2,3],
-                        0:range(len(tasklist)),
-                        1:range(len(instancemakerparams)),
-                        2:range(len(Optimizerparams)),
-                        3:range(EXPERIMENT_REPEATS),
+        params_args = {"keyorder":[0,1,2],
+                        0:range(len(instancemakerparams)),
+                        1:range(len(Optimizerparams)),
+                        2:range(EXPERIMENT_REPEATS),
                         }
         args = maketasks(params_args)
         args=args[arg]
 
 
         
+    resu=[]
+    graphs = loadfile(".chemtask")
+    print (graphs)
 
-
-
-    task = loadfile(".tasks")
-    task_id = args[0] # 16    the graph configurations
-    graphs = task [task_id]
-
-    im_param_id= args[1]# 4    landmark graphs , n neighs
+    im_param_id= args[0]# 4    landmark graphs , n neighs
     im_params = instancemakerparams[im_param_id]
 
 
-    optimizer_para_id = args[2]# 4  optimizer args,, e.g. n_iter halfstep dist
+    optimizer_para_id = args[1]# 4  optimizer args,, e.g. n_iter halfstep dist
     optimizerargs = Optimizerparams[optimizer_para_id]
 
     logger.debug(im_params)
-    logger.debug(tasklist[task_id])
     logger.debug(optimizerargs)
 
-    run_id =args[3] 
+    run_id =args[2] 
+
     im =  InstanceMaker(**im_params).fit(graphs, EXPERIMENT_REPEATS)
+
     res = im.get(run_id)
     landmark_graphs, desired_distances, ranked_graphs, target_graph = res
     result = reconstruct_and_evaluate( target_graph,
@@ -167,7 +205,7 @@ if __name__=="__main__":
             **optimizerargs)
 
 
-    dumpfile(result, ".res/%d_%d_%d_%d" % (task_id, im_param_id, optimizer_para_id, run_id))   #!!!
+    dumpfile(result, ".chemres/%d_%d_%d" % (im_param_id, optimizer_para_id, run_id))   #!!!
 
 
 
@@ -178,13 +216,13 @@ if __name__=="__main__":
 
 
 
-def getvalue(a,b,c, nores, nosucc): # nosucc and nores are just collecting stats
+def getvalue(a,b, nores, nosucc): # nosucc and nores are just collecting stats
     completed = 0
     allsteps=[-1]
     success = 0
     for task in range(EXPERIMENT_REPEATS):
-        taskname = "%d_%d_%d_%d" % (a,b,c,task)
-        fname = ".res/"+taskname
+        taskname = "%d_%d_%d" % (a,b,task)
+        fname = ".chemres/"+taskname
         if os.path.isfile(fname):
             completed +=1
             res, steps = loadfile(fname)
@@ -201,50 +239,55 @@ def getvalue(a,b,c, nores, nosucc): # nosucc and nores are just collecting stats
 
 
 
-#####################
-# Output formatters... 
-#######################
-def defaultformatter(paramsdict, instance):
-    res =[]
-    for k in paramsdict['keyorder']:
-        if len(paramsdict[k] )> 1:
-            #  interesting key
-            res.append("%s:%d " % ( k[:4],instance[k]) )
-    return tuple(res)
+
 
 def imtostr(im):
     d=instancemakerparams[im]
     return "marks:%d neigh:%d" % (d["n_landmarks"], d["n_neighbors"])
-
+#####################
+# formatting for solver options 
+#######################
 def optitostr(op):
     d=Optimizerparams[op]
-    return defaultformatter(params_opt,d)
-    #return "top:%d iter:%d" % (d["keeptop"], d["n_iter"])
+    return "top:%d iter:%d" % (d["keeptop"], d["n_iter"])
     #return "grsizelimit:%d"  % (d["graph_size_limiter"])
 
+###################
+# formatting of y axis -- the graphs
+##############################
 def grtostr(gr):
     d = tasklist[gr]
-    return defaultformatter(params_graphs,d)
     #return "Cyc:%d elab:%d nlab:%d siz:%d dist:%s" % (d['allow_cycles'],d['edge_labels'],d['node_labels'],d['size_of_graphs'],d['labeldistribution'][0])
     #return tuple(("Cyc:%d elab:%d nlab:%d siz:%d dist:%s" % (d['allow_cycles'],d['edge_labels'],d['node_labels'],d['size_of_graphs'],d['labeldistribution'][0])).split(" "))
     #return tuple(("elab:%d nlab:%d" % (d['edge_labels'],d['node_labels'])).split(" "))
-    #return tuple(("elab:%d nlab:%d graphs:%d rrg_it:%d" % (d['edge_labels'],d['node_labels'],d['number_of_graphs'],d['rrg_iter'])).split(" "))
+    return tuple(("elab:%d nlab:%d graphs:%d rrg_it:%d" % (d['edge_labels'],d['node_labels'],d['number_of_graphs'],d['rrg_iter'])).split(" "))
 
 def report():
     dat= defaultdict(dict)
     nores = []
     nosucc =[]
-    for a in range(len(tasklist)):
-        for b in range(len(instancemakerparams)):
-            for c in range(len(Optimizerparams)):
-                #dat[(imtostr(b),optitostr(c))][grtostr(a)]= getvalue(a,b,c, nores, nosucc)
-                dat[optitostr(c)][grtostr(a)]= getvalue(a,b,c, nores, nosucc)
+    for a in range(len(instancemakerparams)):
+        for b in range(len(Optimizerparams)):
+            #dat[(imtostr(b),optitostr(c))][grtostr(a)]= getvalue(a,b,c, nores, nosucc)
+            dat[imtostr(a)][optitostr(b)]= getvalue(a,b, nores, nosucc)
 
     import pprint
     print (pandas.DataFrame(dat).to_string())
     mod = lambda x : str(x).replace("_",' ')
     print ("nores",mod(nores))
     print ('nosucc',mod(nosucc))
-    print ("sumsuccess:", sum([int(a) for c in dat.values() for a,b in c.values()]))
-    print ("maxrnd:", max([int(b) for c in dat.values() for a,b in c.values()]))
+    #print (pandas.DataFrame(dat))df.describe().to_string()
+    '''
+    print ("instancemaker params:")
+    pprint.pprint(instancemakerparams) 
+    print ("optimizer params:")
+    pprint.pprint(Optimizerparams) 
+    print ("graph configurations:")
+    pprint.pprint(tasklist  )
+
+    '''
+
+
+
+
 

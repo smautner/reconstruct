@@ -89,7 +89,7 @@ class MultiObjectiveCostEstimator(object):
 class DistRankSizeCostEstimator(MultiObjectiveCostEstimator):
     """DistRankSizeCostEstimator."""
 
-    def __init__(self, r=3, d=3, multiproc=False):
+    def __init__(self, r=3, d=3, multiproc=False,squared_error=False):
         """Initialize."""
         self.vec = Vectorizer(
             r=r,
@@ -97,6 +97,7 @@ class DistRankSizeCostEstimator(MultiObjectiveCostEstimator):
             normalization=False,
             inner_normalization=False)
         self.multiproc = multiproc
+        self.squared_error =squared_error
 
     @timeit
     def fit(
@@ -105,7 +106,7 @@ class DistRankSizeCostEstimator(MultiObjectiveCostEstimator):
             reference_graphs,
             ranked_graphs):
         """fit."""
-        d_est = InstancesDistanceCostEstimator(self.vec, multiproc=self.multiproc)
+        d_est = InstancesDistanceCostEstimator(self.vec, multiproc=self.multiproc, squared_error=self.squared_error)
         d_est.fit(desired_distances, reference_graphs)
         # rank opti: true better. tested 2018-09-17
         b_est = RankBiasCostEstimator(self.vec, improve=True, multiproc = self.multiproc) 
@@ -145,12 +146,13 @@ class pvectorize(object):
 class InstancesDistanceCostEstimator(pvectorize):
     """InstancesDistanceCostEstimator."""
 
-    def __init__(self, vectorizer=Vectorizer(), multiproc=False):
+    def __init__(self, vectorizer=Vectorizer(), multiproc=False,squared_error=False):
         """init."""
         self.desired_distances = None
         self.reference_vecs = None
         self.vectorizer = vectorizer
         self.multiproc= multiproc
+        self.squared_error = squared_error
 
     def fit(self, desired_distances, reference_graphs):
         """fit."""
@@ -162,9 +164,16 @@ class InstancesDistanceCostEstimator(pvectorize):
     def _avg_distance_diff(self, vector):
         distances = euclidean_distances(vector, self.reference_vecs)[0]
         d = self.desired_distances
-        dist_diff = (distances - d)
-        avg_dist_diff = np.mean(np.absolute(dist_diff))
+        if self.squared_error:
+            dist_diff = (distances - d)**2
+            avg_dist_diff = np.mean(dist_diff)
+        else:
+            dist_diff = (distances - d)                                             
+            avg_dist_diff = np.mean(np.absolute(dist_diff))                         
         return avg_dist_diff
+
+
+
 
     def decision_function(self, graphs):
         """predict_distance."""
