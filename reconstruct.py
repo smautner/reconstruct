@@ -46,7 +46,9 @@ params_graphs = {
     'edge_labels' : [2,4], # using 5 here mega ga fails
     'labeldistribution': ['uniform'] ,# real is unnecessary
     'maxdeg':[3],
-    'rrg_iter':[2]# rule rand graphs , iter argument
+    # rule rand graphs , iter argument ,  
+    #0 means just use the rand graphs, a little hacky but works for now
+    'rrg_iter':[0]
 }
 
 # 2. function paramdict to tasks
@@ -67,7 +69,8 @@ def make_task_file():
     def maketsk(args):
         rrg_iter = args.pop("rrg_iter")
         graphs = rg.make_graphs_static(**args)
-        #g,_ = rrg.rule_rand_graphs(graphs, numgr=500,iter=rrg_iter) 
+        if rrg_iter > 0:
+            graphs = rrg.rule_rand_graphs(graphs, numgr=500,iter=rrg_iter) 
         return graphs
     dumpfile([maketsk(args) for args in tasklist], ".tasks")
     #dumpfile([ rg.make_graphs_static(maxdeg=3, **args) for args in tasklist], ".tasks")
@@ -135,10 +138,6 @@ if __name__=="__main__":
                         }
         args = maketasks(params_args)
         args=args[arg]
-
-
-        
-
 
 
     task = loadfile(".tasks")
