@@ -195,7 +195,7 @@ import graphlearn3.lsgg_cip as glcip
 
 class hashvec(object):
 
-    def __init__(self, vectorizer, multiproc = True):
+    def __init__(self, vectorizer, multiproc = 1):
         self.vectorizer = vectorizer
         self.multiproc = multiproc
 
@@ -217,12 +217,12 @@ class hashvec(object):
         return [glcip.graph_hash(eden.graph._edge_to_vertex_transform(g),2**20-1,node_name_label=lambda id,node:hash(node['label'])) for g in chunk]
 
     def vectorize_multiproc(self, graphs):
-        with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+        with multiprocessing.Pool(self.multiproc) as p:
             res = (p.map(self.vectorize_chunk, self.grouper(1000,graphs)))
         return itertools.chain.from_iterable(res)
 
     def vectorize(self,graphs):
-        if self.multiproc:
+        if self.multiproc>1:
             return self.vectorize_multiproc(graphs)
         else:
             return self.vectorize_chunk(graphs)
@@ -480,8 +480,8 @@ class MYOPTIMIZER(object):
         return neighs
 
     def _expand_neighbors(self, graphs):
-        if self.multiproc:
-            with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+        if self.multiproc>1:
+            with multiprocessing.Pool(self.multiproc) as p:
                 return list(concat(p.map(self._get_neighbors,graphs)))
         else:
           return list(concat(map(self._get_neighbors,graphs)))
@@ -534,8 +534,16 @@ class LocalLandmarksDistanceOptimizer(object):
         self.grammar.set_context(context_size)
         #self.grammar.set_min_count(min_count) interfacecount 1 makes no sense
         self.grammar.filter_args['min_cip_count'] = min_count
-        self.multiobj_est = costs.DistRankSizeCostEstimator(r=r, d=d, multiproc=multiproc, squared_error=squared_error)
-        self.multiproc=multiproc
+        
+        
+        if multiproc == -1:
+            self.usecpus = multiprocessing.cpu_count()
+        elif multiproc ==0:
+            self.usecpus = 1
+        else:
+            self.usecpus=multiproc
+
+        self.multiobj_est = costs.DistRankSizeCostEstimator(r=r, d=d, multiproc=self.usecpus, squared_error=squared_error)
         self.add_grammar_rules = add_grammar_rules
         self.keeptop =keeptop
 
@@ -596,7 +604,7 @@ class LocalLandmarksDistanceOptimizer(object):
             multiobj_est=self.multiobj_est,
             n_iter=self.n_iter,
             keeptop=self.keeptop,
-            multiproc=self.multiproc, target=target)
+            multiproc =self.usecpus, target=target)
 
         if not start_graph_list:
             res = pgo.optimize(ranked_graphs)

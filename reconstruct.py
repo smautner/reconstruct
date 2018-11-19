@@ -76,6 +76,15 @@ def make_task_file():
     #dumpfile([ rg.make_graphs_static(maxdeg=3, **args) for args in tasklist], ".tasks")
 
 
+def load_chem(AID):
+    import json
+    import networkx.readwrite.json_graph as sg
+    with open(AID+".json", 'r') as handle:
+        js = json.load(handle.read())
+        res = [sg.node_link_graph(jsg) for jsg in js]
+    for g in res:
+        g.graph={}
+    return res
 
 
 
@@ -98,10 +107,10 @@ params_opt = {
     "half_step_distance" : [True], # true clearly supperior
     "n_iter":[15,20], # 5 just for ez problems
     "keeptop":[10,15], # 20 seems enough
-    'multiproc': [False],
+    'multiproc': [10],
     "add_grammar_rules":[True],
     "squared_error": [False], # False slightly better 590:572 
-    "graph_size_limiter":[ lambda x: x.mean()+(int(x.std()) or 5) ]
+    "graph_size_limiter":[ lambda x: x.max()+(int(x.std()) or 5) ]
 }
 Optimizerparams = maketasks(params_opt)
 

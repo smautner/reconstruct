@@ -89,7 +89,7 @@ class MultiObjectiveCostEstimator(object):
 class DistRankSizeCostEstimator(MultiObjectiveCostEstimator):
     """DistRankSizeCostEstimator."""
 
-    def __init__(self, r=3, d=3, multiproc=False,squared_error=False):
+    def __init__(self, r=3, d=3, multiproc= 1,squared_error=False):
         """Initialize."""
         self.vec = Vectorizer(
             r=r,
@@ -131,13 +131,13 @@ class pvectorize(object):
             yield chunk
 
     def vectorize_mp(self, graphs):
-        with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+        with multiprocessing.Pool(self.multiproc) as p:
             res = (p.map(self.vectorizer.transform, self.grouper(1000,graphs)))
             res =  scipy.sparse.vstack(res)
         return res
 
     def vectorize(self,graphs):
-        if self.multiproc:
+        if self.multiproc>1:
             return self.vectorize_mp(graphs)
         else:
             return self.vectorizer.transform(graphs)
@@ -146,7 +146,7 @@ class pvectorize(object):
 class InstancesDistanceCostEstimator(pvectorize):
     """InstancesDistanceCostEstimator."""
 
-    def __init__(self, vectorizer=Vectorizer(), multiproc=False,squared_error=False):
+    def __init__(self, vectorizer=Vectorizer(), multiproc=1,squared_error=False):
         """init."""
         self.desired_distances = None
         self.reference_vecs = None
@@ -192,7 +192,7 @@ class InstancesDistanceCostEstimator(pvectorize):
 class RankBiasCostEstimator(pvectorize):
     """RankBiasCostEstimator."""
 
-    def __init__(self, vectorizer, improve=True, multiproc=False):
+    def __init__(self, vectorizer, improve=True, multiproc=1):
         """init."""
         self.multiproc=multiproc
         self.vectorizer = vectorizer
