@@ -1,8 +1,5 @@
 import reconstruct as r
 
-s=r.loadfile('.chemtask')
-print (len(s))
-exit()
 
 
 graphsets = r.loadfile(".tasks")
