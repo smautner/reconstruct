@@ -107,7 +107,7 @@ params_opt = {
     "half_step_distance" : [True], # true clearly supperior
     "n_iter":[15,20], # 5 just for ez problems
     "keeptop":[10,15], # 20 seems enough
-    'multiproc': [10],
+    'multiproc': [1],
     "add_grammar_rules":[True],
     "squared_error": [False], # False slightly better 590:572 
     "graph_size_limiter":[ lambda x: x.max()+(int(x.std()) or 5) ]
