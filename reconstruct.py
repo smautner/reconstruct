@@ -136,9 +136,13 @@ def reconstruct_and_evaluate(target_graph,
 
 
 if __name__=="__main__":
-    if len(sys.argv)==1:
+    if sys.argv[1]=="maketasks":
         print("writing task file...")
         make_task_file()
+        exit()
+    elif sys.argv[1]=="maketaskschem":
+        print("writing task file...")
+        make_chem_task_file()
         exit()
     else:
         #print(sys.argv[-1])
