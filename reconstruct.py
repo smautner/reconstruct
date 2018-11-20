@@ -5,11 +5,14 @@ import pandas
 import os
 import sys
 import numpy as np
-
 from util.util import jdumpfile, jloadfile, InstanceMaker, dumpfile, loadfile
-
 from util import rule_rand_graphs as rrg
-EXPERIMENT_REPEATS = 20
+from exploration import pareto
+from eden.util import configure_logging
+import logging
+configure_logging(logging.getLogger(),verbosity=2)
+logger = logging.getLogger(__name__)
+
 
 '''
 USAGE:
@@ -19,16 +22,12 @@ USAGE:
 '''
 
 
-####################
-# run and get best result
-###################
-from exploration import pareto
-
-
-from eden.util import configure_logging
-import logging
-configure_logging(logging.getLogger(),verbosity=2)
-logger = logging.getLogger(__name__)
+def maketasks(params):
+    # want a list
+    combolist =[[]]
+    for key in params['keyorder']:
+        combolist = [  e+[value] for value in params[key]  for e in combolist ]
+    return  [ {k:v for k,v in zip(params['keyorder'],configuration)} for configuration in combolist ]
 
 
 
@@ -36,6 +35,7 @@ logger = logging.getLogger(__name__)
 ##  OPTIONS FOR GRAPHS
 ##########################################
 
+EXPERIMENT_REPEATS = 20
 # 1. param dict
 
 params_graphs = {
@@ -52,50 +52,8 @@ params_graphs = {
     'rrg_iter':[0]
 }
 
-# 2. function paramdict to tasks
-
-def maketasks(params):
-    # want a list
-    combolist =[[]]
-    for key in params['keyorder']:
-        combolist = [  e+[value] for value in params[key]  for e in combolist ]
-
-    return  [ {k:v for k,v in zip(params['keyorder'],configuration)} for configuration in combolist ]
-
 tasklist  = maketasks(params_graphs )
-
-
-# 3. loop over task
-def make_task_file():
-    def maketsk(args):
-        rrg_iter = args.pop("rrg_iter")
-        graphs = rg.make_graphs_static(**args)
-        if rrg_iter > 0:
-            graphs = rrg.rule_rand_graphs(graphs, numgr=500,iter=rrg_iter) 
-        return graphs
-    dumpfile([maketsk(args) for args in tasklist], ".tasks")
-    #dumpfile([ rg.make_graphs_static(maxdeg=3, **args) for args in tasklist], ".tasks")
-
-
-def load_chem(AID):
-    import json
-    import networkx.readwrite.json_graph as sg
-    with open(AID, 'r') as handle:
-        js = json.load(handle)
-        res = [sg.node_link_graph(jsg) for jsg in js]
-    for g in res:
-        g.graph={}
-    return res
-
-def make_chem_task_file():
-    files="""AID1224837.sdf.json  AID1454.sdf.json  AID1987.sdf.json  AID618.sdf.json     AID731.sdf.json     AID743218.sdf.json  AID904.sdf.json AID1224840.sdf.json  AID1554.sdf.json  AID2073.sdf.json  AID720709.sdf.json  AID743202.sdf.json  AID828.sdf.json"""
-    files = files.split()
-    res=[]
-    for f in files: 
-        stuff =load_chem("chemsets/"+f)
-        random.shuffle(stuff)
-        res.append(stuff)
-    dumpfile(res, ".tasks")
+tasklist=list(range(13)) # chem stuff
 
 ######################
 #  OPTIONS FOR PROBLEM GENERATOR
@@ -116,13 +74,44 @@ params_opt = {
     "half_step_distance" : [True], # true clearly supperior
     "n_iter":[15], # 5 just for ez problems
     "keeptop":[10], # 20 seems enough
-    'multiproc': [1],
+    'multiproc': [8],
     "add_grammar_rules":[True],
     "squared_error": [False], # False slightly better 590:572 
     "graph_size_limiter":[ lambda x: x.max()+(int(x.std()) or 5) ]
 }
 Optimizerparams = maketasks(params_opt)
 
+
+# 3. loop over task
+def make_task_file():
+    def maketsk(args):
+        rrg_iter = args.pop("rrg_iter")
+        graphs = rg.make_graphs_static(**args)
+        if rrg_iter > 0:
+            graphs = rrg.rule_rand_graphs(graphs, numgr=500,iter=rrg_iter) 
+        return graphs
+    dumpfile([maketsk(args) for args in tasklist], ".tasks")
+    #dumpfile([ rg.make_graphs_static(maxdeg=3, **args) for args in tasklist], ".tasks")
+
+def load_chem(AID):
+    import json
+    import networkx.readwrite.json_graph as sg
+    with open(AID, 'r') as handle:
+        js = json.load(handle)
+        res = [sg.node_link_graph(jsg) for jsg in js]
+    for g in res:
+        g.graph={}
+    return res
+
+def make_chem_task_file():
+    files="""AID1224837.sdf.json  AID1454.sdf.json  AID1987.sdf.json  AID618.sdf.json     AID731.sdf.json     AID743218.sdf.json  AID904.sdf.json AID1224840.sdf.json  AID1554.sdf.json  AID2073.sdf.json  AID720709.sdf.json  AID743202.sdf.json  AID828.sdf.json"""
+    files = files.split()
+    res=[]
+    for f in files: 
+        stuff =load_chem("chemsets/"+f)
+        random.shuffle(stuff)
+        res.append(stuff)
+    dumpfile(res, ".tasks")
 
 def reconstruct_and_evaluate(target_graph,
                                 landmark_graphs,
@@ -240,13 +229,10 @@ def imtostr(im):
 def optitostr(op):
     d=Optimizerparams[op]
     return defaultformatter(params_opt,d)
-    #return "top:%d iter:%d" % (d["keeptop"], d["n_iter"])
-    #return "grsizelimit:%d"  % (d["graph_size_limiter"])
 
 def grtostr(gr):
     d = tasklist[gr]
     return defaultformatter(params_graphs,d)
-    #return "Cyc:%d elab:%d nlab:%d siz:%d dist:%s" % (d['allow_cycles'],d['edge_labels'],d['node_labels'],d['size_of_graphs'],d['labeldistribution'][0])
     #return tuple(("Cyc:%d elab:%d nlab:%d siz:%d dist:%s" % (d['allow_cycles'],d['edge_labels'],d['node_labels'],d['size_of_graphs'],d['labeldistribution'][0])).split(" "))
     #return tuple(("elab:%d nlab:%d" % (d['edge_labels'],d['node_labels'])).split(" "))
     #return tuple(("elab:%d nlab:%d graphs:%d rrg_it:%d" % (d['edge_labels'],d['node_labels'],d['number_of_graphs'],d['rrg_iter'])).split(" "))
