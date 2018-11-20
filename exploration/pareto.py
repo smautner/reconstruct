@@ -440,10 +440,13 @@ class MYOPTIMIZER(object):
 
     def _duplicate_rm(self,graphs):
         hashes =self.hash_vectorizer.vectorize(graphs)
-        for ha, gr in zip(hashes,graphs):
+        self.collisionlist =[]
+        for i, (ha, gr) in enumerate(zip(hashes,graphs)):
             if ha not in self.seen_graphs:
-                self.seen_graphs[ha] =1
+                self.seen_graphs[ha] = i
                 yield gr
+            else:
+                self.collisionlist.append((i,self.seen_graphs[ha]))
 
 
 

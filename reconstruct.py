@@ -101,13 +101,21 @@ def load_chem(AID):
     import json
     import networkx.readwrite.json_graph as sg
     import networkx as nx
+    import exploration.pareto as pp
+    from structout import gprint
     with open(AID, 'r') as handle:
         js = json.load(handle)
         res = [sg.node_link_graph(jsg) for jsg in js]
-        res = [g for g in res if nx.is_connected(g)] 
-    for g in res:
-        g.graph={}
-    return res
+        res = [g for g in res if nx.is_connected(g)]  # rm not connected crap
+        for g in res:g.graph={}
+        zz=pp.MYOPTIMIZER()
+        res2 = list(zz._duplicate_rm(res))
+        print ("duplicates in chem files:%d"% (len(res)-len(res2)))
+        print (zz.collisionlist)
+        for a,b in zz.collisionlist:
+            gprint([res[a],res[b]])
+
+    return res2
 
 def make_chem_task_file():
     files="""AID1224837.sdf.json  AID1454.sdf.json  AID1987.sdf.json  AID618.sdf.json     AID731.sdf.json     AID743218.sdf.json  AID904.sdf.json AID1224840.sdf.json  AID1554.sdf.json  AID2073.sdf.json  AID720709.sdf.json  AID743202.sdf.json  AID828.sdf.json"""
