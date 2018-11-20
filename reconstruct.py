@@ -53,11 +53,10 @@ params_graphs = {
 }
 
 tasklist  = maketasks(params_graphs )
-#tasklist=list(range(13)) # chem stuff
 
 ######################
 #  OPTIONS FOR PROBLEM GENERATOR
-##########################
+#####################15
 # call with reconstruct.py TASKID  REPEATID
 params_insta= {
     'keyorder' :  ["n_landmarks", "n_neighbors"],
@@ -82,6 +81,11 @@ params_opt = {
 Optimizerparams = maketasks(params_opt)
 
 
+
+
+###################################
+# WRITING TASK FILES 
+####################################
 # 3. loop over task
 def make_task_file():
     def maketsk(args):
@@ -115,6 +119,13 @@ def make_chem_task_file():
         res.append(stuff)
     dumpfile(res, ".tasks")
 
+
+
+
+##################################33
+# RUNNING 
+############################
+
 def reconstruct_and_evaluate(target_graph,
                                 landmark_graphs,
                                 desired_distances,
@@ -142,6 +153,14 @@ if __name__=="__main__":
         # ok need to run this on the cluster where i only have a task id...
         # the queickest way to hack this while still being compatible with the old crap 
         # is using the maketasts function defined above...
+        taskfilename = '.tasks'
+        resprefix='.res'
+        if sys.argv[-2] == 'chem':
+            taskfilename = '.chemtasks'
+            resprefix='.chemres'
+            tasklist=list(range(13)) # chem stuff
+
+
         arg = int(sys.argv[-1])-1
         params_args = {"keyorder":[0,1,2,3],
                         0:range(len(tasklist)),
@@ -152,16 +171,17 @@ if __name__=="__main__":
         args = maketasks(params_args)
         args=args[arg]
 
-
-    task = loadfile(".tasks")
-    task_id = args[0] # 16    the graph configurations
+    #OPTIONS FOR GRAPHS
+    task = loadfile(taskfilename)
+    task_id = args[0] 
     graphs = task [task_id]
 
-    im_param_id= args[1]# 4    landmark graphs , n neighs
+    # landmark graphs , n neighs
+    im_param_id= args[1]
     im_params = instancemakerparams[im_param_id]
 
-
-    optimizer_para_id = args[2]# 4  optimizer args,, e.g. n_iter halfstep dist
+    # OPTIONS FOR OPTIMIZER
+    optimizer_para_id = args[2]
     optimizerargs = Optimizerparams[optimizer_para_id]
 
     logger.debug(im_params)
@@ -169,6 +189,12 @@ if __name__=="__main__":
     logger.debug(optimizerargs)
 
     run_id =args[3] 
+
+    filename = "%s/%d_%d_%d_%d" % (resprefix,task_id, im_param_id, optimizer_para_id, run_id)
+    if os.path.isfile(filename):
+        print ("FILE EXISTS")
+        exit()
+
     im =  InstanceMaker(**im_params).fit(graphs, EXPERIMENT_REPEATS)
     res = im.get(run_id)
     landmark_graphs, desired_distances, ranked_graphs, target_graph = res
@@ -177,44 +203,13 @@ if __name__=="__main__":
             desired_distances,
             ranked_graphs,
             **optimizerargs)
-
-
-    dumpfile(result, ".res/%d_%d_%d_%d" % (task_id, im_param_id, optimizer_para_id, run_id))   #!!!
-
-
-
-#######################################
-# Report
-#########################
-
-
-
-
-def getvalue(a,b,c, nores, nosucc): # nosucc and nores are just collecting stats
-    completed = 0
-    allsteps=[-1]
-    success = 0
-    for task in range(EXPERIMENT_REPEATS):
-        taskname = "%d_%d_%d_%d" % (a,b,c,task)
-        fname = ".res/"+taskname
-        if os.path.isfile(fname):
-            completed +=1
-            res, steps = loadfile(fname)
-            success += res
-            if not res:   # FAIL
-                nosucc.append(taskname)
-            else:       # success -> remember step count
-                allsteps.append(steps)
-        else: 
-            nores.append(taskname)
-    allsteps = np.array(allsteps)
-    return success,  allsteps.max()
+    dumpfile(result, filename)   
 
 
 
 
 #####################
-# Output formatters... 
+# EVAL OUTPUT FORMAT
 #######################
 def defaultformatter(paramsdict, instance):
     res =[]
@@ -238,6 +233,32 @@ def grtostr(gr):
     #return tuple(("Cyc:%d elab:%d nlab:%d siz:%d dist:%s" % (d['allow_cycles'],d['edge_labels'],d['node_labels'],d['size_of_graphs'],d['labeldistribution'][0])).split(" "))
     #return tuple(("elab:%d nlab:%d" % (d['edge_labels'],d['node_labels'])).split(" "))
     #return tuple(("elab:%d nlab:%d graphs:%d rrg_it:%d" % (d['edge_labels'],d['node_labels'],d['number_of_graphs'],d['rrg_iter'])).split(" "))
+
+
+
+##############################
+# EVALUATING
+##########################
+
+def getvalue(a,b,c, nores, nosucc): # nosucc and nores are just collecting stats
+    completed = 0
+    allsteps=[-1]
+    success = 0
+    for task in range(EXPERIMENT_REPEATS):
+        taskname = "%d_%d_%d_%d" % (a,b,c,task)
+        fname = ".res/"+taskname
+        if os.path.isfile(fname):
+            completed +=1
+            res, steps = loadfile(fname)
+            success += res
+            if not res:   # FAIL
+                nosucc.append(taskname)
+            else:       # success -> remember step count
+                allsteps.append(steps)
+        else: 
+            nores.append(taskname)
+    allsteps = np.array(allsteps)
+    return success,  allsteps.max()
 
 def report():
     dat= defaultdict(dict)
