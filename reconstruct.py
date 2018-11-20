@@ -225,7 +225,7 @@ def defaultformatter(paramsdict, instance):
         if len(paramsdict[k] )> 1:
             #  interesting key
             res.append("%s:%d " % ( k[:4],instance[k]) )
-    return tuple(res)
+    return tuple(res) or "lol"
 
 def imtostr(im):
     d=instancemakerparams[im]

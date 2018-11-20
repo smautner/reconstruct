@@ -535,9 +535,9 @@ class LocalLandmarksDistanceOptimizer(object):
         self.max_size_frontier = max_size_frontier
         self.output_k_best = output_k_best
         self.grammar = lsgg_size_hack(cip_root_all=False, half_step_distance=half_step_distance)
-        self.grammar.set_core_size([0, 1, 2,3,4])
+        self.grammar.set_core_size([0, 1, 2])
         if half_step_distance:
-            self.grammar.set_core_size([0, 1, 2, 4,6])
+            self.grammar.set_core_size([0, 1, 2,3,4])
         self.grammar.set_context(context_size)
         #self.grammar.set_min_count(min_count) interfacecount 1 makes no sense
         self.grammar.filter_args['min_cip_count'] = min_count
