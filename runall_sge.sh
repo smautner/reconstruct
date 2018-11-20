@@ -1,7 +1,9 @@
 #!/bin/bash
 #$ -cwd
-#$ -l h_vmem=16G
+#$ -l h_vmem=2G
 #$ -M mautner@cs.uni-freiburg.de
+#$ -pe smp 8
+#$ -R y
 #$ -o /home/mautner/JOBZ/reconstr_o/$JOB_ID.o_$TASK_ID
 #$ -e /home/mautner/JOBZ/reconstr_e/$JOB_ID.e_$TASK_ID
 
