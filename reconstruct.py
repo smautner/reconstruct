@@ -96,9 +96,11 @@ def make_task_file():
 def load_chem(AID):
     import json
     import networkx.readwrite.json_graph as sg
+    import networkx as nx
     with open(AID, 'r') as handle:
         js = json.load(handle)
         res = [sg.node_link_graph(jsg) for jsg in js]
+        res = [g for g in res if nx.is_connected(g)] 
     for g in res:
         g.graph={}
     return res

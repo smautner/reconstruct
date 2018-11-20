@@ -210,7 +210,11 @@ class hashvec(object):
 
     def vectorize_chunk(self,chunk):
         feature_dicts = [ self.vectorizer._transform(graph) for graph in chunk]
-        hashed_features = [ hash(tuple(sorted(fd.keys()))) for fd in feature_dicts]
+        def hashor(fd):
+            k= sorted(fd.keys())
+            v = [fd[kk] for kk in k]
+            return hash(tuple(k+v))
+        hashed_features = [ hashor(fd) for fd in feature_dicts]
         return hashed_features
     
     def vectorize_chunk_glhash(self,chunk):
