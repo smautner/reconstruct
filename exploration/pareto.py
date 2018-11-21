@@ -138,44 +138,8 @@ class MYOPTIMIZER(object):
         graphs = self.duplicate_rm(graphs)
         return graphs, status
 
-    def filter_by_cost3(self,costs,graphs):
-        """the idea is to use priority queues..."""
-        timenow=time.time()
-        in_count = len(graphs)
-        if in_count< 50:
-            logger.debug('cost_filter: keep all %d graphs' % in_count)
-            return graphs
+   
 
-        # put graphs in queues
-        for qu,cos in zip(self.queues,[costs[:,i] for i in range(4)]): # one could also use the last one...
-            for c,g in zip(cos,graphs):
-                heapq.heappush(qu,(c,random.random(),g))
-
-        for q in self.queues:
-            q=q[:2047]
-        
-        res = [heapq.heappop(q)[2] for q in self.queues for i in range(self.keeptop)]
-        
-        #res = self.duplicate_rm(res)
-        # DEBUG TO SHOW THE REAL DISTANCE
-        if self.cheat:
-            print ("real distances for all kept graphs, axis 1 are the estimators that selected them")
-            matrix = np.hstack(
-                        [self.cheater.cheat_calc([graphs[z] for z in costs_ranked[:,i]]).reshape(-1,1)
-                        for i in range(costs_ranked.shape[1])]
-                )
-            print(matrix)
-            print (costs[costs_ranked[:,1],0])
-            print (costs[costs_ranked[:,0],0])
-
-            stuff = np.where(matrix == 0.0)
-            if len(stuff[0])>0:
-                from util import util
-                util.dumpfile(graphs[costs_ranked[stuff][0]],"gr")
-                print ("graph dumped")
-
-        logger.debug('cost_filter: got %d graphs, reduced to %d (%.2fs)'%(in_count,len(res),time.time()-timenow))
-        return res
     def filter_by_cost(self,costs,graphs):
         """expand top 10 in everything, discard rest"""
         timenow=time.time()
@@ -221,52 +185,7 @@ class MYOPTIMIZER(object):
         logger.debug('cost_filter: got %d graphs, reduced to %d (%.2fs)'%(in_count,len(res),time.time()-timenow))
         return res
 
-    def filter_by_cost2(self,costs,graphs):
-        """like 1, but prefilters by the size estimator, this does not works well if size is known..."""
-        timenow=time.time()
-        in_count = len(graphs)
-        if in_count< 50:
-            logger.debug('cost_filter: keep all %d graphs' % in_count)
-            return graphs
-
-        # 1. Filter by SIZE
-        costs_ranked = np.argsort(costs,axis=0)[:,2]
-        cut = 49
-        while costs[costs_ranked[cut-1],2] == costs[costs_ranked[cut],2] and cut+1 < len(graphs):
-            cut+=1
-
-        costs_ranked = costs_ranked[:cut+1] 
-        costs = costs[costs_ranked,:] 
-        graphs =[graphs[idd] for idd in costs_ranked]
-       
-        # need to keep x best in each category
-        costs_ranked = np.argsort(costs,axis=0)[:self.keeptop]
-        want , counts = np.unique(costs_ranked,return_counts=True) 
-
-        res = [graphs[idd] for idd,count in zip( want,counts) if count > 0 ] 
-        for g,score in zip(res,want):
-            g.graph['history'].append(costs[score])
-
-        # DEBUG TO SHOW THE REAL DISTANCE
-        if self.cheat:
-            print ("real distances for all kept graphs, axis 1 are the estimators that selected them")
-            matrix = np.hstack(
-                        [self.cheater.cheat_calc([graphs[z] for z in costs_ranked[:,i]]).reshape(-1,1)
-                        for i in range(costs_ranked.shape[1])]
-                )
-            print(matrix)
-            print (costs[costs_ranked[:,1],0])
-            print (costs[costs_ranked[:,0],0])
-
-            stuff = np.where(matrix == 0.0)
-            if len(stuff[0])>0:
-                from util import util
-                util.dumpfile(graphs[costs_ranked[stuff][0]],"gr")
-                print ("graph dumped")
-
-        logger.debug('cost_filter: got %d graphs, reduced to %d (%.2fs)'%(in_count,len(res),time.time()-timenow))
-        return res
-
+   
     def duplicate_rm(self,graphs):
         timenow=time.time()
         count = len(graphs)
@@ -474,22 +393,3 @@ class LocalLandmarksDistanceOptimizer(object):
         return val
         
 
-# USAGE:
-'''
-    ld_opt = LocalLandmarksDistanceOptimizer(
-        r=r,
-        d=d,
-        min_count=min_count,
-        context_size=context_size,
-        expand_max_n_neighbors=expand_max_n_neighbors,
-        n_iter=n_iter + 1,
-        expand_max_frontier=expand_max_frontier,
-        max_size_frontier=max_size_frontier,
-        output_k_best=output_k_best,
-        adapt_grammar_n_iter=adapt_grammar_n_iter)
-
-    graphs = ld_opt.optimize(
-        landmark_graphs,
-        desired_distances,
-        ranked_graphs)
-'''
