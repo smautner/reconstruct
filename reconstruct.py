@@ -41,7 +41,7 @@ EXPERIMENT_REPEATS = 20
 params_graphs = {
     'keyorder' :  ["number_of_graphs", "size_of_graphs","node_labels","edge_labels","allow_cycles","labeldistribution","maxdeg","rrg_iter"],
     'allow_cycles':[False], # cycles are very bad
-    'number_of_graphs': [500],
+    'number_of_graphs': [30],
     'size_of_graphs' :[8] ,
     'node_labels' : [4],
     'edge_labels' : [2], # using 5 here mega ga fails
@@ -49,7 +49,7 @@ params_graphs = {
     'maxdeg':[3],
     # rule rand graphs , iter argument ,  
     #0 means just use the rand graphs, a little hacky but works for now
-    'rrg_iter':[0]
+    'rrg_iter':[3]
 }
 
 tasklist  = maketasks(params_graphs )
@@ -71,8 +71,8 @@ instancemakerparams =maketasks(params_insta)
 params_opt = {
     'keyorder' :  ["half_step_distance",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter"],
     "half_step_distance" : [True], # true clearly supperior
-    "n_iter":[20], # 5 just for ez problems
-    "keeptop":[15], # 20 seems enough
+    "n_iter":[15], # 5 just for ez problems
+    "keeptop":[10], # 20 seems enough
     'multiproc': [8],
     "add_grammar_rules":[True],
     "squared_error": [False], # False slightly better 590:572 

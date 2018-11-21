@@ -552,6 +552,7 @@ class LocalLandmarksDistanceOptimizer(object):
         self.grammar = lsgg_size_hack(cip_root_all=False, half_step_distance=False)
         self.grammar.set_core_size([0, 1, 3])
         self.grammar.set_context(context_size)
+        self.context_size= context_size
         #self.grammar.set_min_count(min_count) interfacecount 1 makes no sense
         self.grammar.filter_args['min_cip_count'] = min_count
         
@@ -574,8 +575,8 @@ class LocalLandmarksDistanceOptimizer(object):
     def enhance_grammar(self, graphs):
         self.grammar.fit(graphs)
         self.grammar.half_step_distance = True
-        self.grammar.set_core_size([0,1, 2, 6])
-        self.grammar.decomposition_args['thickness_list']=[1,2]
+        self.grammar.set_core_size([0, 2, 6]) #   just double 
+        self.grammar.decomposition_args['thickness_list']=[1,self.context_size*2]
         if self.add_grammar_rules:
             print(self.grammar)
             lsggs.enhance(self.grammar, graphs,lsggs.makelsgg(),nodecount=10, edgecount =5, degree =3)
