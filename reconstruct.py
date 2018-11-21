@@ -71,8 +71,8 @@ instancemakerparams =maketasks(params_insta)
 params_opt = {
     'keyorder' :  ["half_step_distance",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter"],
     "half_step_distance" : [True], # true clearly supperior
-    "n_iter":[10], # 5 just for ez problems
-    "keeptop":[10], # 20 seems enough
+    "n_iter":[20], # 5 just for ez problems
+    "keeptop":[15], # 20 seems enough
     'multiproc': [8],
     "add_grammar_rules":[True],
     "squared_error": [False], # False slightly better 590:572 
@@ -211,7 +211,8 @@ if __name__=="__main__":
             desired_distances,
             ranked_graphs,
             **optimizerargs)
-    dumpfile(result, filename)   
+
+    jdumpfile(result, filename)   
 
 
 

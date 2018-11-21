@@ -529,7 +529,7 @@ class LocalLandmarksDistanceOptimizer(object):
             r=3,
             d=3,
             half_step_distance=False,
-            context_size=2,
+            context_size=1,
             min_count=1,
             expand_max_n_neighbors=None,
             max_size_frontier=None,
@@ -575,7 +575,7 @@ class LocalLandmarksDistanceOptimizer(object):
         self.grammar.fit(graphs)
         self.grammar.half_step_distance = True
         self.grammar.set_core_size([0,1, 2, 6])
-        self.grammar.decomposition_args['thickness_list']=[1,4]
+        self.grammar.decomposition_args['thickness_list']=[1,2]
         if self.add_grammar_rules:
             print(self.grammar)
             lsggs.enhance(self.grammar, graphs,lsggs.makelsgg(),nodecount=10, edgecount =5, degree =3)
