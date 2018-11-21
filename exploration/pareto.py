@@ -496,11 +496,16 @@ class MYOPTIMIZER(object):
         return neighs
 
     def _expand_neighbors(self, graphs):
+        timenow = time.time()
         if self.multiproc>1:
             with multiprocessing.Pool(self.multiproc) as p:
+                logger.debug("graph generation: %.2fs" %  (time.time()-timenow))
                 return list(concat(p.map(self._get_neighbors,graphs)))
         else:
-          return list(concat(map(self._get_neighbors,graphs)))
+
+            logger.debug("graph generation: %.2fs" %  (time.time()-timenow))
+            return list(concat(map(self._get_neighbors,graphs)))
+
 
 class lsgg_size_hack(lsgg):
     def _neighbors_given_cips(self, graph, orig_cips):
