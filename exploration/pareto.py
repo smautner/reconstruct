@@ -365,6 +365,15 @@ class MYOPTIMIZER(object):
         for g,score in zip(res,want):
             g.graph['history'].append(costs[score])
 
+
+        # OK SO THE TRICK IS TO ALSO GET SOME FROM THE PARETO FRONT
+        dontwant = [i for i in range(len(graphs)) if i not in want]
+        restgraphs = [graphs[i] for i in dontwant]
+        restcosts = costs[dontwant]
+        paretoselectedgraphs = paretof._pareto_set(restgraphs, restcosts)
+        res += paretoselectedgraphs
+
+
         # DEBUG TO SHOW THE REAL DISTANCE
         if self.cheat:
             print ("real distances for all kept graphs, axis 1 are the estimators that selected them")
