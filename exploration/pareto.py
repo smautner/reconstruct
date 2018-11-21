@@ -353,14 +353,6 @@ class LocalLandmarksDistanceOptimizer(object):
 
         self.grammar.genmaxsize = self.calc_graph_max_size(reference_graphs)
         # setup and run optimizer
-        pgo = ParetoGraphOptimizer(
-            grammar=self.grammar,
-            multiobj_est=self.multiobj_est,
-            expand_max_n_neighbors=self.expand_max_n_neighbors,
-            expand_max_frontier=self.expand_max_frontier,
-            max_size_frontier=self.max_size_frontier,
-            n_iter=self.n_iter,
-            adapt_grammar_n_iter=self.adapt_grammar_n_iter)
 
         pgo = MYOPTIMIZER(
             grammar=self.grammar,
