@@ -72,9 +72,9 @@ params_opt = {
     'keyorder' :  ["core_sizes",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter"],
     "core_sizes" : [[0,2,4]], # on exp graph
     "n_iter":[15], # 5 just for ez problems
-    "keeptop":[10], # 20 seems enough
+    "keeptop":[5], # 5+  15 pareto things
     'multiproc': [8],
-    "add_grammar_rules":[True],
+    "add_grammar_rules":[False],
     "squared_error": [False], # False slightly better 590:572 
     "graph_size_limiter":[ lambda x: x.max()+(int(x.std()) or 5) ]
 }

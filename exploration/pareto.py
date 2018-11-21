@@ -144,7 +144,7 @@ class MYOPTIMIZER(object):
         """expand top 10 in everything, discard rest"""
         timenow=time.time()
         in_count = len(graphs)
-        if in_count< 50:
+        if in_count <= 50:
             logger.debug('cost_filter: keep all %d graphs' % in_count)
             return graphs
        
@@ -162,7 +162,8 @@ class MYOPTIMIZER(object):
         restgraphs = [graphs[i] for i in dontwant]
         restcosts = costs[dontwant]
         paretoselectedgraphs = paretof._pareto_set(restgraphs, restcosts)
-        res += paretoselectedgraphs
+        random.shuffle(paretoselectedgraphs)
+        res+=paretoselectedgraphs[:15]
 
 
         # DEBUG TO SHOW THE REAL DISTANCE
@@ -208,15 +209,11 @@ class MYOPTIMIZER(object):
     def get_costs(self, graphs):
         timenow=time.time()
         costs = self.multiobj_est.decision_function(graphs)
+        logger.debug("costs: best dist: %f (%.2fs)" %  (np.min(costs[:,0]) ,time.time()-timenow))
+        return costs
 
 
-        #logger.debug("costs: best dist: %f (%.2fs)" %  (np.min(costs[:,0]) ,time.time()-timenow))
-        #return costs
-
-        if costs.shape[0] < 50:
-            return costs
-
-
+        '''
         sort = np.argsort(costs,axis=0)
         nucol = np.argsort(sort,axis=0)
         current_val = -1
@@ -226,14 +223,12 @@ class MYOPTIMIZER(object):
             if costs[e,2] != current_val: # there is a new value
                 current_val = costs[e,2]      # remember that 
                 resdic[current_val] = i
-
         for i,e in enumerate(costs[:,2]):
             nucol[i,2] = resdic[e]
-
         costs = np.hstack((costs, np.sum(nucol,axis =1).reshape(-1,1)))
-
         logger.debug("costs: best dist: %f (%.2fs)" %  (np.min(costs[:,0]) ,time.time()-timenow))
         return costs
+        '''
 
     def _get_neighbors(self, graph):
         neighs = list(self.grammar.neighbors(graph))
@@ -321,6 +316,7 @@ class LocalLandmarksDistanceOptimizer(object):
         self.grammar.fit(graphs)
         if self.add_grammar_rules:
             print(self.grammar)
+            print ('enhance grammar is not to be used anymore... 1 should be appended when not already in.. ')
             self.grammar.decomposition_args['thickness_list'].append(1)
             lsggs.enhance(self.grammar, graphs,lsggs.makelsgg(),nodecount=10, edgecount =5, degree =3)
             print(self.grammar)
