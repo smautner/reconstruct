@@ -61,7 +61,7 @@ tasklist  = maketasks(params_graphs )
 params_insta= {
     'keyorder' :  ["n_landmarks", "n_neighbors"],
     'n_landmarks' : [5], # seems to help a little with larger problems, >3 recommended
-    'n_neighbors' :[50] # seems to not matter much 25 and 50 look the same, 15 and 75 also
+    'n_neighbors' :[50,100,150] # seems to not matter much 25 and 50 look the same, 15 and 75 also
     }
 instancemakerparams =maketasks(params_insta)
 
@@ -70,7 +70,7 @@ instancemakerparams =maketasks(params_insta)
 ##############################
 params_opt = {
     'keyorder' :  ["core_sizes",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter"],
-    "core_sizes" : [[0,2,4]], # on exp graph
+    "core_sizes" : [[0,2,4],[0,1,2],[0,1,2,3],[1,2,3]], # on exp graph
     "n_iter":[15], # 5 just for ez problems
     "keeptop":[5], # 5+  15 pareto things
     'multiproc': [8],

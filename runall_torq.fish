@@ -1,7 +1,10 @@
 
 
-for i in (seq 1 260)
-    qsub -q short torq_single.sh -F "$i"
+set lol loop di doo i am da Q
+
+
+for i in (seq 1 240)
+    qsub -q short torq_single.sh -F "$i" -N "$lol[ (math \"$i % 8\") ]"
 end
 
 # had jobs grouped, many small mem jobs are better...
