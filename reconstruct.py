@@ -69,8 +69,8 @@ instancemakerparams =maketasks(params_insta)
 #  OPTIONS FOR SOLVER 
 ##############################
 params_opt = {
-    'keyorder' :  ["half_step_distance",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter"],
-    "half_step_distance" : [True], # true clearly supperior
+    'keyorder' :  ["core_sizes",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter"],
+    "core_sizes" : [[0,2,4]], # on exp graph
     "n_iter":[15], # 5 just for ez problems
     "keeptop":[10], # 20 seems enough
     'multiproc': [8],

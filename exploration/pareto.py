@@ -274,8 +274,8 @@ class LocalLandmarksDistanceOptimizer(object):
             self,
             r=3,
             d=3,
-            half_step_distance=False,
-            context_size=1,
+            core_sizes=[0,2,4],
+            context_size=2,
             min_count=1,
             expand_max_n_neighbors=None,
             max_size_frontier=None,
@@ -295,10 +295,9 @@ class LocalLandmarksDistanceOptimizer(object):
         self.expand_max_frontier = expand_max_frontier
         self.max_size_frontier = max_size_frontier
         self.output_k_best = output_k_best
-        self.grammar = lsgg_size_hack(cip_root_all=False, half_step_distance=False)
-        self.grammar.set_core_size([0, 1, 3])
+        self.grammar = lsgg_size_hack(cip_root_all=False, half_step_distance=True)
+        self.grammar.set_core_size(core_sizes)
         self.grammar.set_context(context_size)
-        self.context_size= context_size
         #self.grammar.set_min_count(min_count) interfacecount 1 makes no sense
         self.grammar.filter_args['min_cip_count'] = min_count
         
@@ -320,11 +319,9 @@ class LocalLandmarksDistanceOptimizer(object):
 
     def enhance_grammar(self, graphs):
         self.grammar.fit(graphs)
-        self.grammar.half_step_distance = True
-        self.grammar.set_core_size([0, 2, 6]) #   just double 
-        self.grammar.decomposition_args['thickness_list']=[1,self.context_size*2]
         if self.add_grammar_rules:
             print(self.grammar)
+            self.grammar.decomposition_args['thickness_list'].append(1)
             lsggs.enhance(self.grammar, graphs,lsggs.makelsgg(),nodecount=10, edgecount =5, degree =3)
             print(self.grammar)
         
