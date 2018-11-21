@@ -48,6 +48,10 @@ class InstanceMaker(object):
         landmark_graphs = ranked_graphs[:self.n_landmarks]
         desired_distances = distances[:self.n_landmarks]
 
-        logger.debug ("target and nn")
+        logger.debug ("target(%d,%d) and nn(%d,%d)" % (target_graph.number_of_nodes(),
+                                                       target_graph.number_of_edges(),
+                                                       ranked_graphs[0].number_of_nodes(),
+                                                       ranked_graphs[0].number_of_edges()))
         so.gprint([target_graph, ranked_graphs[0]], edgelabel='label')
+        
         return landmark_graphs, desired_distances, ranked_graphs, target_graph

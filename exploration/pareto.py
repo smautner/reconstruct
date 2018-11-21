@@ -504,7 +504,8 @@ class MYOPTIMIZER(object):
 
 class lsgg_size_hack(lsgg):
     def _neighbors_given_cips(self, graph, orig_cips):
-        """iterator over graphs generted by substituting all orig_cips in graph (with cips from grammar)"""
+        """iterator over graphs generted by substituting all orig_cips in graph (with
+        cips from grammar)"""
         grlen = len(graph)
         for cip in orig_cips:
             congruent_cips = self._congruent_cips(cip)
@@ -523,7 +524,7 @@ class LocalLandmarksDistanceOptimizer(object):
             r=3,
             d=3,
             half_step_distance=False,
-            context_size=1,
+            context_size=2,
             min_count=1,
             expand_max_n_neighbors=None,
             max_size_frontier=None,
@@ -543,10 +544,8 @@ class LocalLandmarksDistanceOptimizer(object):
         self.expand_max_frontier = expand_max_frontier
         self.max_size_frontier = max_size_frontier
         self.output_k_best = output_k_best
-        self.grammar = lsgg_size_hack(cip_root_all=False, half_step_distance=half_step_distance)
-        self.grammar.set_core_size([0, 1, 2])
-        if half_step_distance:
-            self.grammar.set_core_size([0, 1, 2,3,4])
+        self.grammar = lsgg_size_hack(cip_root_all=False, half_step_distance=False)
+        self.grammar.set_core_size([0, 1, 3])
         self.grammar.set_context(context_size)
         #self.grammar.set_min_count(min_count) interfacecount 1 makes no sense
         self.grammar.filter_args['min_cip_count'] = min_count
@@ -569,6 +568,9 @@ class LocalLandmarksDistanceOptimizer(object):
 
     def enhance_grammar(self, graphs):
         self.grammar.fit(graphs)
+        self.grammar.half_step_distance = True
+        self.grammar.set_core_size([0,1, 2, 6])
+        self.grammar.decomposition_args['thickness_list']=[1,4]
         if self.add_grammar_rules:
             print(self.grammar)
             lsggs.enhance(self.grammar, graphs,lsggs.makelsgg(),nodecount=10, edgecount =5, degree =3)

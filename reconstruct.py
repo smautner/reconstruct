@@ -60,7 +60,7 @@ tasklist  = maketasks(params_graphs )
 # call with reconstruct.py TASKID  REPEATID
 params_insta= {
     'keyorder' :  ["n_landmarks", "n_neighbors"],
-    'n_landmarks' : [25], # seems to help a little with larger problems, >3 recommended
+    'n_landmarks' : [5], # seems to help a little with larger problems, >3 recommended
     'n_neighbors' :[50] # seems to not matter much 25 and 50 look the same, 15 and 75 also
     }
 instancemakerparams =maketasks(params_insta)
@@ -125,7 +125,7 @@ def make_chem_task_file():
         stuff =load_chem("chemsets/"+f)
         random.shuffle(stuff)
         res.append(stuff)
-    dumpfile(res, ".tasks")
+    dumpfile(res, ".chemtasks")
 
 
 
