@@ -92,8 +92,9 @@ def make_task_file():
         rrg_iter = args.pop("rrg_iter")
         graphs = rg.make_graphs_static(**args)
         if rrg_iter > 0:
-            graphs = rrg.rule_rand_graphs(graphs, numgr=500,iter=rrg_iter) 
+            graphs = rrg.rule_rand_graphs(graphs, numgr=500,iter=rrg_iter)[0]
         return graphs
+
     dumpfile([maketsk(args) for args in tasklist], ".tasks")
     #dumpfile([ rg.make_graphs_static(maxdeg=3, **args) for args in tasklist], ".tasks")
 

@@ -1,11 +1,7 @@
 import reconstruct as r
-
-
-
 graphsets = r.loadfile(".tasks")
 import numpy as np
 from structout import gprint
-
 
 def size(graphs):
     return np.array([len(g) for g in graphs]).mean()
