@@ -150,6 +150,16 @@ def reconstruct_and_evaluate(target_graph,
     return res
 
 
+def id_to_options(tasklist=tasklist):
+    params_args = {"keyorder":[0,1,2,3],
+                        0:range(len(tasklist)),
+                        1:range(len(instancemakerparams)),
+                        2:range(len(Optimizerparams)),
+                        3:range(EXPERIMENT_REPEATS),
+                        }
+    args = maketasks(params_args)
+    return args
+
 if __name__=="__main__":
     if sys.argv[1]=="maketasks":
         print("writing task file...")
@@ -173,16 +183,8 @@ if __name__=="__main__":
             resprefix='.chemres'
             tasklist=list(range(13)) # chem stuff
 
-
         arg = int(sys.argv[-1])-1
-        params_args = {"keyorder":[0,1,2,3],
-                        0:range(len(tasklist)),
-                        1:range(len(instancemakerparams)),
-                        2:range(len(Optimizerparams)),
-                        3:range(EXPERIMENT_REPEATS),
-                        }
-        args = maketasks(params_args)
-        args=args[arg]
+        args=id_to_options(tasklist=tasklist)[arg]
 
     #OPTIONS FOR GRAPHS
     task = loadfile(taskfilename)
@@ -203,7 +205,7 @@ if __name__=="__main__":
 
     run_id =args[3] 
 
-    filename = "%s/%d_%d_%d_%d" % (resprefix,task_id, im_param_id, optimizer_para_id, run_id)
+    filename = "%s/%d" % (arg)
     if os.path.isfile(filename):
         print ("FILE EXISTS")
         exit()
@@ -254,12 +256,12 @@ def grtostr(gr):
 # EVALUATING
 ##########################
 
-def getvalue(a,b,c, nores, nosucc, folder): # nosucc and nores are just collecting stats
+def getvalue(p, nores, nosucc, folder): # nosucc and nores are just collecting stats
     completed = 0
     allsteps=[-1]
     success = 0
     for task in range(EXPERIMENT_REPEATS):
-        taskname = "%d_%d_%d_%d" % (a,b,c,task)
+        taskname = "%d" % p+task
         fname = folder+"/"+taskname
         if os.path.isfile(fname):
             completed +=1
@@ -277,15 +279,15 @@ def getvalue(a,b,c, nores, nosucc, folder): # nosucc and nores are just collecti
 def report(folder = '.res', chem=False):
     if chem: 
         tasklist = get_chem_filenames()
+
+    problems = id_to_options(tasklist= tasklist)
+
     dat= defaultdict(dict)
     nores = []
     nosucc =[]
-    for a in range(len(tasklist)):
-        for b in range(len(instancemakerparams)):
-            for c in range(len(Optimizerparams)):
-                #dat[(imtostr(b),optitostr(c))][grtostr(a)]= getvalue(a,b,c, nores, nosucc)
-                #dat[optitostr(c)][grtostr(a)]= getvalue(a,b,c, nores, nosucc)
-                dat[optitostr(c)][tasklist[a][:tasklist[a].find(".")]]= getvalue(a,b,c, nores, nosucc, folder)
+    for p in range(0,len(problems),EXPERIMENT_REPEATS):
+        a,b,c,_ = problems[p]
+        dat[optitostr(c)][tasklist[a][:tasklist[a].find(".")]]= getvalue(p, nores, nosucc, folder)
 
     #mod = lambda x : str(x).replace("_",' ')
     print ("nores",nores)
