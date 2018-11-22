@@ -53,7 +53,6 @@ params_graphs = {
 }
 
 tasklist  = maketasks(params_graphs )
-
 ######################
 #  OPTIONS FOR PROBLEM GENERATOR
 #####################15
@@ -134,6 +133,96 @@ def make_chem_task_file():
 
 
 
+def id_to_options(tasklist=tasklist):
+    params_args = {"keyorder":[3,2,1,0], # 3 first -> order works out ineval
+                        0:range(len(tasklist)),
+                        1:range(len(instancemakerparams)),
+                        2:range(len(Optimizerparams)),
+                        3:range(EXPERIMENT_REPEATS),
+                        }
+    args = maketasks(params_args)
+    return args
+
+
+#####################
+# EVAL OUTPUT FORMAT
+#######################
+def defaultformatter(paramsdict, instance_dict):
+    res =[]
+    for k in paramsdict['keyorder']:
+        if len(paramsdict[k] )> 1:
+            #  interesting key
+            res.append("%s:%s " % ( k[:4],str(instance_dict[k])) )
+    res=  tuple(res) or "lol"
+    return res
+
+def imtostr(im):
+    d=instancemakerparams[im]
+    return "marks:%d neigh:%d" % (d["n_landmarks"], d["n_neighbors"])
+
+def optitostr(op):
+    d=Optimizerparams[op]
+    return defaultformatter(params_opt,d)
+
+def grtostr(gr):
+    d = tasklist[gr]
+    return defaultformatter(params_graphs,d)
+    #return tuple(("Cyc:%d elab:%d nlab:%d siz:%d dist:%s" % (d['allow_cycles'],d['edge_labels'],d['node_labels'],d['size_of_graphs'],d['labeldistribution'][0])).split(" "))
+    #return tuple(("elab:%d nlab:%d" % (d['edge_labels'],d['node_labels'])).split(" "))
+    #return tuple(("elab:%d nlab:%d graphs:%d rrg_it:%d" % (d['edge_labels'],d['node_labels'],d['number_of_graphs'],d['rrg_iter'])).split(" "))
+
+
+
+##############################
+# EVALUATING
+##########################
+
+def getvalue(p, nores, nosucc, folder): # nosucc and nores are just collecting stats
+    completed = 0
+    allsteps=[-1]
+    success = 0
+    for task in range(EXPERIMENT_REPEATS):
+        taskname = "%d" % (p+task)
+        fname = folder+"/"+taskname
+        if os.path.isfile(fname):
+            completed +=1
+            res, steps = jloadfile(fname)
+            success += res
+            if not res:   # FAIL
+                nosucc.append(taskname)
+            else:       # success -> remember step count
+                allsteps.append(steps)
+        else: 
+            nores.append(taskname)
+    allsteps = np.array(allsteps)
+    return success,  allsteps.max()
+
+def report(folder = '.res', tasklist=None):
+
+    problems = id_to_options(tasklist= tasklist)
+
+    for e in problems: print (e)
+    dat= defaultdict(dict)
+    nores = []
+    nosucc =[]
+    for p in range(0,len(problems),EXPERIMENT_REPEATS):
+        a,b,c,_ = [ problems[p][k] for k in [0,1,2,3]]
+        im = imtostr(b)
+        gr = grtostr(a)
+        op = optitostr(c)
+        dat[(gr,op)][im]= getvalue(p, nores, nosucc, folder)
+
+    #mod = lambda x : str(x).replace("_",' ')
+    print ("nores",nores)
+    print ('nosucc',nosucc)
+    print ("sumsuccess:", sum([int(a) for c in dat.values() for a,b in c.values()]))
+    print ("maxrnd:", max([int(b) for c in dat.values() for a,b in c.values()]))
+
+    print (pandas.DataFrame(dat).to_string()) 
+    #print (pandas.DataFrame(dat).to_latex()) 
+
+
+
 ##################################33
 # RUNNING 
 ############################
@@ -149,20 +238,17 @@ def reconstruct_and_evaluate(target_graph,
     return res
 
 
-def id_to_options(tasklist=tasklist):
-    params_args = {"keyorder":[0,1,2,3],
-                        0:range(len(tasklist)),
-                        1:range(len(instancemakerparams)),
-                        2:range(len(Optimizerparams)),
-                        3:range(EXPERIMENT_REPEATS),
-                        }
-    args = maketasks(params_args)
-    return args
-
 if __name__=="__main__":
     if sys.argv[1]=="maketasks":
         print("writing task file...")
         make_task_file()
+        exit()
+    elif sys.argv[1]=="report":
+        report('.res',tasklist)
+        exit()
+    elif sys.argv[1]=="reportchem":
+        tasklist = get_chem_filenames()
+        report('.chemres',tasklist)
         exit()
     elif sys.argv[1]=="maketaskschem":
         print("writing task file...")
@@ -223,76 +309,3 @@ if __name__=="__main__":
 
 
 
-#####################
-# EVAL OUTPUT FORMAT
-#######################
-def defaultformatter(paramsdict, instance):
-    res =[]
-    for k in paramsdict['keyorder']:
-        if len(paramsdict[k] )> 1:
-            #  interesting key
-            res.append("%s:%d " % ( k[:4],str(instance[k])) )
-    return tuple(res) or "lol"
-
-def imtostr(im):
-    d=instancemakerparams[im]
-    return "marks:%d neigh:%d" % (d["n_landmarks"], d["n_neighbors"])
-
-def optitostr(op):
-    d=Optimizerparams[op]
-    return defaultformatter(params_opt,d)
-
-def grtostr(gr):
-    d = tasklist[gr]
-    return defaultformatter(params_graphs,d)
-    #return tuple(("Cyc:%d elab:%d nlab:%d siz:%d dist:%s" % (d['allow_cycles'],d['edge_labels'],d['node_labels'],d['size_of_graphs'],d['labeldistribution'][0])).split(" "))
-    #return tuple(("elab:%d nlab:%d" % (d['edge_labels'],d['node_labels'])).split(" "))
-    #return tuple(("elab:%d nlab:%d graphs:%d rrg_it:%d" % (d['edge_labels'],d['node_labels'],d['number_of_graphs'],d['rrg_iter'])).split(" "))
-
-
-
-##############################
-# EVALUATING
-##########################
-
-def getvalue(p, nores, nosucc, folder): # nosucc and nores are just collecting stats
-    completed = 0
-    allsteps=[-1]
-    success = 0
-    for task in range(EXPERIMENT_REPEATS):
-        taskname = "%d" % p+task
-        fname = folder+"/"+taskname
-        if os.path.isfile(fname):
-            completed +=1
-            res, steps = jloadfile(fname)
-            success += res
-            if not res:   # FAIL
-                nosucc.append(taskname)
-            else:       # success -> remember step count
-                allsteps.append(steps)
-        else: 
-            nores.append(taskname)
-    allsteps = np.array(allsteps)
-    return success,  allsteps.max()
-
-def report(folder = '.res', chem=False):
-    if chem: 
-        tasklist = get_chem_filenames()
-
-    problems = id_to_options(tasklist= tasklist)
-
-    dat= defaultdict(dict)
-    nores = []
-    nosucc =[]
-    for p in range(0,len(problems),EXPERIMENT_REPEATS):
-        a,b,c,_ = problems[p]
-        dat[optitostr(c)][tasklist[a][:tasklist[a].find(".")]]= getvalue(p, nores, nosucc, folder)
-
-    #mod = lambda x : str(x).replace("_",' ')
-    print ("nores",nores)
-    print ('nosucc',nosucc)
-    print ("sumsuccess:", sum([int(a) for c in dat.values() for a,b in c.values()]))
-    print ("maxrnd:", max([int(b) for c in dat.values() for a,b in c.values()]))
-
-    print (pandas.DataFrame(dat).to_string()) 
-    print (pandas.DataFrame(dat).to_latex()) 
