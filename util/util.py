@@ -11,7 +11,7 @@ logger = logging.getLogger()
 dumpfile = lambda thing, filename: dill.dump(thing, open(filename, "wb"))
 jdumpfile = lambda thing, filename:  open(filename,'w').write(json.dumps(thing))
 loadfile = lambda filename: dill.load(open(filename, "rb"))
-jloadfile = lambda filename:  json.loads(open(filename,'w').read())
+jloadfile = lambda filename:  json.loads(open(filename,'r').read())
 
 
 class InstanceMaker(object):

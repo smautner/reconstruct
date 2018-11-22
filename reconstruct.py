@@ -230,7 +230,7 @@ def defaultformatter(paramsdict, instance):
     for k in paramsdict['keyorder']:
         if len(paramsdict[k] )> 1:
             #  interesting key
-            res.append("%s:%d " % ( k[:4],instance[k]) )
+            res.append("%s:%d " % ( k[:4],str(instance[k])) )
     return tuple(res) or "lol"
 
 def imtostr(im):
