@@ -133,6 +133,7 @@ class MYOPTIMIZER(object):
         # filter, expand, chk duplicates
         costs = self.get_costs(graphs)
         status = self.checkstatus(costs, graphs)
+        if status: return [],True  
         graphs = self.filter_by_cost(costs, graphs)
         graphs = self._expand_neighbors(graphs)
         graphs = self.duplicate_rm(graphs)

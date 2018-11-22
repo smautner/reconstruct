@@ -61,7 +61,7 @@ tasklist  = maketasks(params_graphs )
 params_insta= {
     'keyorder' :  ["n_landmarks", "n_neighbors"],
     'n_landmarks' : [5], # seems to help a little with larger problems, >3 recommended
-    'n_neighbors' :[50,100,150] # seems to not matter much 25 and 50 look the same, 15 and 75 also
+    'n_neighbors' :[50] # seems to not matter much 25 and 50 look the same, 15 and 75 also
     }
 instancemakerparams =maketasks(params_insta)
 
@@ -70,10 +70,10 @@ instancemakerparams =maketasks(params_insta)
 ##############################
 params_opt = {
     'keyorder' :  ["core_sizes",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter"],
-    "core_sizes" : [[0,2,4],[0,1,2],[0,1,2,3],[1,2,3]], # on exp graph
-    "n_iter":[15], # 5 just for ez problems
+    "core_sizes" : [[0,2,6]], # on exp graph
+    "n_iter":[10], # 5 just for ez problems
     "keeptop":[5], # 5+  15 pareto things
-    'multiproc': [8],
+    'multiproc': [12],
     "add_grammar_rules":[False],
     "squared_error": [False], # False slightly better 590:572 
     "graph_size_limiter":[ lambda x: x.max()+(int(x.std()) or 5) ]
@@ -118,9 +118,13 @@ def load_chem(AID):
 
     return res2
 
-def make_chem_task_file():
+def get_chem_filenames():
     files="""AID1224837.sdf.json  AID1454.sdf.json  AID1987.sdf.json  AID618.sdf.json     AID731.sdf.json     AID743218.sdf.json  AID904.sdf.json AID1224840.sdf.json  AID1554.sdf.json  AID2073.sdf.json  AID720709.sdf.json  AID743202.sdf.json  AID828.sdf.json"""
     files = files.split()
+    return files
+
+def make_chem_task_file():
+    files = get_chem_filenames()
     res=[]
     for f in files: 
         stuff =load_chem("chemsets/"+f)
@@ -250,16 +254,16 @@ def grtostr(gr):
 # EVALUATING
 ##########################
 
-def getvalue(a,b,c, nores, nosucc): # nosucc and nores are just collecting stats
+def getvalue(a,b,c, nores, nosucc, folder): # nosucc and nores are just collecting stats
     completed = 0
     allsteps=[-1]
     success = 0
     for task in range(EXPERIMENT_REPEATS):
         taskname = "%d_%d_%d_%d" % (a,b,c,task)
-        fname = ".res/"+taskname
+        fname = folder+"/"+taskname
         if os.path.isfile(fname):
             completed +=1
-            res, steps = loadfile(fname)
+            res, steps = jloadfile(fname)
             success += res
             if not res:   # FAIL
                 nosucc.append(taskname)
@@ -270,7 +274,9 @@ def getvalue(a,b,c, nores, nosucc): # nosucc and nores are just collecting stats
     allsteps = np.array(allsteps)
     return success,  allsteps.max()
 
-def report():
+def report(folder = '.res', chem=False):
+    if chem: 
+        tasklist = get_chem_filenames()
     dat= defaultdict(dict)
     nores = []
     nosucc =[]
@@ -278,13 +284,14 @@ def report():
         for b in range(len(instancemakerparams)):
             for c in range(len(Optimizerparams)):
                 #dat[(imtostr(b),optitostr(c))][grtostr(a)]= getvalue(a,b,c, nores, nosucc)
-                dat[optitostr(c)][grtostr(a)]= getvalue(a,b,c, nores, nosucc)
+                #dat[optitostr(c)][grtostr(a)]= getvalue(a,b,c, nores, nosucc)
+                dat[optitostr(c)][tasklist[a][:tasklist[a].find(".")]]= getvalue(a,b,c, nores, nosucc, folder)
 
-    import pprint
-    print (pandas.DataFrame(dat).to_string())
-    mod = lambda x : str(x).replace("_",' ')
-    print ("nores",mod(nores))
-    print ('nosucc',mod(nosucc))
+    #mod = lambda x : str(x).replace("_",' ')
+    print ("nores",nores)
+    print ('nosucc',nosucc)
     print ("sumsuccess:", sum([int(a) for c in dat.values() for a,b in c.values()]))
     print ("maxrnd:", max([int(b) for c in dat.values() for a,b in c.values()]))
 
+    print (pandas.DataFrame(dat).to_string()) 
+    print (pandas.DataFrame(dat).to_latex()) 
