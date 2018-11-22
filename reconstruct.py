@@ -204,7 +204,7 @@ if __name__=="__main__":
 
     run_id =args[3] 
 
-    filename = "%s/%d" % (arg)
+    filename = "%s/%d" % (resprefix,arg)
     if os.path.isfile(filename):
         print ("FILE EXISTS")
         exit()
