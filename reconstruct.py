@@ -35,7 +35,7 @@ def maketasks(params):
 ##  OPTIONS FOR GRAPHS
 ##########################################
 
-EXPERIMENT_REPEATS = 20
+EXPERIMENT_REPEATS = 10
 # 1. param dict
 
 params_graphs = {
@@ -44,7 +44,7 @@ params_graphs = {
     'number_of_graphs': [30],
     'size_of_graphs' :[8] ,
     'node_labels' : [4],
-    'edge_labels' : [2], # using 5 here mega ga fails
+    'edge_labels' : [2,4], # using 5 here mega ga fails
     'labeldistribution': ['uniform'] ,# real is unnecessary
     'maxdeg':[3],
     # rule rand graphs , iter argument ,  
@@ -60,7 +60,7 @@ tasklist  = maketasks(params_graphs )
 # call with reconstruct.py TASKID  REPEATID
 params_insta= {
     'keyorder' :  ["n_landmarks", "n_neighbors"],
-    'n_landmarks' : [5], # seems to help a little with larger problems, >3 recommended
+    'n_landmarks' : [5,25], # seems to help a little with larger problems, >3 recommended
     'n_neighbors' :[50] # seems to not matter much 25 and 50 look the same, 15 and 75 also
     }
 instancemakerparams =maketasks(params_insta)
@@ -70,10 +70,10 @@ instancemakerparams =maketasks(params_insta)
 ##############################
 params_opt = {
     'keyorder' :  ["core_sizes",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter"],
-    "core_sizes" : [[0,2,6]], # on exp graph
-    "n_iter":[10], # 5 just for ez problems
+    "core_sizes" : [[0,2,4]], # on exp graph
+    "n_iter":[10,15], # 5 just for ez problems
     "keeptop":[5], # 5+  15 pareto things
-    'multiproc': [12],
+    'multiproc': [6],
     "add_grammar_rules":[False],
     "squared_error": [False], # False slightly better 590:572 
     "graph_size_limiter":[ lambda x: x.max()+(int(x.std()) or 5) ]
@@ -94,7 +94,6 @@ def make_task_file():
         if rrg_iter > 0:
             graphs = rrg.rule_rand_graphs(graphs, numgr=500,iter=rrg_iter)[0]
         return graphs
-
     dumpfile([maketsk(args) for args in tasklist], ".tasks")
     #dumpfile([ rg.make_graphs_static(maxdeg=3, **args) for args in tasklist], ".tasks")
 
