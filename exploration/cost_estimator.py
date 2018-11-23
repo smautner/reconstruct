@@ -254,5 +254,5 @@ class SizeCostEstimator(object):
         sizes = np.array([self._graph_size(g) for g in graphs])
         size_diffs = np.absolute(sizes - self.reference_size)
         size_diffs = size_diffs.reshape(-1, 1)
-        return diffs
+        return size_diffs
 
