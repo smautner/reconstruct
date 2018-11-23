@@ -293,7 +293,8 @@ class LocalLandmarksDistanceOptimizer(object):
             add_grammar_rules = False,
             graph_size_limiter = lambda x: 999,
             squared_error = False,
-            adapt_grammar_n_iter=None, multiproc=False, **kwargs):
+            adapt_grammar_n_iter=None, cs2cs=[] , # context size 2 core size
+            multiproc=False, **kwargs):
         """init."""
         self.graph_size_limiter = graph_size_limiter
         self.adapt_grammar_n_iter = adapt_grammar_n_iter
@@ -304,10 +305,11 @@ class LocalLandmarksDistanceOptimizer(object):
         self.output_k_best = output_k_best
         self.grammar = lsgg_size_hack(cip_root_all=False, half_step_distance=True)
         self.grammar.set_core_size(core_sizes)
-        self.grammar.set_context(context_size)
+        self.grammar.decomposition_args['thickness_list'] = [context_size]
         #self.grammar.set_min_count(min_count) interfacecount 1 makes no sense
         self.grammar.filter_args['min_cip_count'] = min_count
         self.optiopts = kwargs
+        self.cs2cs = cs2cs
         
         
         if multiproc == -1:
@@ -326,7 +328,25 @@ class LocalLandmarksDistanceOptimizer(object):
         pass
 
     def enhance_grammar(self, graphs):
-        self.grammar.fit(graphs)
+
+        if self.cs2cs:
+            # train on context 1 +2  what is allowed
+            self.grammar.decomposition_args['thickness_list'] = [2,4]
+            cs = self.grammar.decomposition_args['radius_list']
+            self.grammar.fit(graphs)
+
+            # train on context 2
+            self.grammar.decomposition_args['thickness_list'] = [4]
+            self.grammar.set_core_size(self.cs2cs)
+            self.grammar.fit(graphs)
+
+            # set tings up for extraction
+            self.grammar.decomposition_args['thickness_list'] = [2,4]
+            self.grammar.set_core_size( cs+self.cs2cs )
+
+        else: # fir normaly
+            self.grammar.fit(graphs)
+
         if self.add_grammar_rules:
             print(self.grammar)
             print ('enhance grammar is not to be used anymore... 1 should be appended when not already in.. ')
