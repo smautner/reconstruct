@@ -95,7 +95,10 @@ def make_task_file():
         if rrg_iter > 0:
             graphs = rrg.rule_rand_graphs(graphs, numgr=500,iter=rrg_iter)[0]
         return graphs
-    dumpfile([maketsk(args) for args in tasklist], ".tasks")
+
+    import extensions.lsggscramble  as scram
+    data = scram.funmap(maketsk, tasklist,poolsize=20)
+    dumpfile(data, ".tasks")
     #dumpfile([ rg.make_graphs_static(maxdeg=3, **args) for args in tasklist], ".tasks")
 
 def load_chem(AID):
