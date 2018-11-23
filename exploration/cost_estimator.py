@@ -252,11 +252,7 @@ class SizeCostEstimator(object):
     def decision_function(self, graphs):
         """decision_function."""
         sizes = np.array([self._graph_size(g) for g in graphs])
-        #size_diffs = np.absolute(sizes - self.reference_size)
-        #size_diffs = size_diffs.reshape(-1, 1)
-        diffs = (sizes - self.reference_size)
-        diffs = (diffs)**2
-        size_diffs = np.mean(diffs)
-
-        return size_diffs
+        size_diffs = np.absolute(sizes - self.reference_size)
+        size_diffs = size_diffs.reshape(-1, 1)
+        return diffs
 
