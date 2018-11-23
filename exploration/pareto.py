@@ -78,7 +78,7 @@ class MYOPTIMIZER(object):
             multiobj_est=None,
             n_iter=19,
             keeptop= 20,
-            random_state=1,multiproc=True, target=None):
+            random_state=1,multiproc=True, target=None, removeworst=0):
         """init."""
         self.grammar = grammar
         self.keeptop = keeptop
@@ -90,6 +90,7 @@ class MYOPTIMIZER(object):
         self.cheat = False
         self.seen_graphs = {}
         self.queues  = [ list() for i in range(4)]
+        self.prefilter_keep= 1-removeworst
         if target:
             self.cheat= True
             self.cheater = cheater(target)
@@ -148,7 +149,17 @@ class MYOPTIMIZER(object):
         if in_count <= 50:
             logger.debug('cost_filter: keep all %d graphs' % in_count)
             return graphs
-       
+
+
+
+        #DELETE THE 25% worst in each category
+        if self.prefilter_keep!=1:
+            costs_ranked = np.argsort(costs,axis=0)[:len(graphs)*self.prefilter_keep]
+            keep = np.unique(costs_ranked)
+            graphs = [graphs[i] for i in keep]
+            costs = costs[keep]
+
+
         # need to keep x best in each category
         costs_ranked = np.argsort(costs,axis=0)[:self.keeptop]
         want , counts = np.unique(costs_ranked,return_counts=True) 
@@ -282,7 +293,7 @@ class LocalLandmarksDistanceOptimizer(object):
             add_grammar_rules = False,
             graph_size_limiter = lambda x: 999,
             squared_error = False,
-            adapt_grammar_n_iter=None, multiproc=False):
+            adapt_grammar_n_iter=None, multiproc=False, **kwargs):
         """init."""
         self.graph_size_limiter = graph_size_limiter
         self.adapt_grammar_n_iter = adapt_grammar_n_iter
@@ -296,6 +307,7 @@ class LocalLandmarksDistanceOptimizer(object):
         self.grammar.set_context(context_size)
         #self.grammar.set_min_count(min_count) interfacecount 1 makes no sense
         self.grammar.filter_args['min_cip_count'] = min_count
+        self.optiopts = kwargs
         
         
         if multiproc == -1:
@@ -360,7 +372,7 @@ class LocalLandmarksDistanceOptimizer(object):
             multiobj_est=self.multiobj_est,
             n_iter=self.n_iter,
             keeptop=self.keeptop,
-            multiproc =self.usecpus, target=target)
+            multiproc =self.usecpus, target=target,**self.optiopts)
 
         if not start_graph_list:
             res = pgo.optimize(ranked_graphs)
