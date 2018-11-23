@@ -90,7 +90,7 @@ class MYOPTIMIZER(object):
         self.cheat = False
         self.seen_graphs = {}
         self.queues  = [ list() for i in range(4)]
-        self.prefilter_keep= 1-removeworst
+        self.prefilter_kick= removeworst
         if target:
             self.cheat= True
             self.cheater = cheater(target)
@@ -153,12 +153,12 @@ class MYOPTIMIZER(object):
 
 
         #DELETE THE 25% worst in each category
-        if self.prefilter_keep!=1:
-            costs_ranked = np.argsort(costs,axis=0)[:int(len(graphs)*self.prefilter_keep)]
-            keep = np.unique(costs_ranked)
+        if self.prefilter_kick!=0:
+            costs_ranked = np.argsort(costs,axis=0)[-int(len(graphs)*self.prefilter_kick):]
+            trash = np.unique(costs_ranked)
+            keep =  [i for i in range(len(graphs)) if i not in trash]
             graphs = [graphs[i] for i in keep]
             costs = costs[keep]
-
 
         # need to keep x best in each category
         costs_ranked = np.argsort(costs,axis=0)[:self.keeptop]
