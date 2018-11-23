@@ -222,10 +222,7 @@ class MYOPTIMIZER(object):
         timenow=time.time()
         costs = self.multiobj_est.decision_function(graphs)
         logger.debug("costs: best dist: %f (%.2fs)" %  (np.min(costs[:,0]) ,time.time()-timenow))
-        return costs
 
-
-        '''
         sort = np.argsort(costs,axis=0)
         nucol = np.argsort(sort,axis=0)
         current_val = -1
@@ -240,7 +237,6 @@ class MYOPTIMIZER(object):
         costs = np.hstack((costs, np.sum(nucol,axis =1).reshape(-1,1)))
         logger.debug("costs: best dist: %f (%.2fs)" %  (np.min(costs[:,0]) ,time.time()-timenow))
         return costs
-        '''
 
     def _get_neighbors(self, graph):
         neighs = list(self.grammar.neighbors(graph))
