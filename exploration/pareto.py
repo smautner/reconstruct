@@ -154,7 +154,7 @@ class MYOPTIMIZER(object):
 
         #DELETE THE 25% worst in each category
         if self.prefilter_keep!=1:
-            costs_ranked = np.argsort(costs,axis=0)[:len(graphs)*self.prefilter_keep]
+            costs_ranked = np.argsort(costs,axis=0)[:int(len(graphs)*self.prefilter_keep)]
             keep = np.unique(costs_ranked)
             graphs = [graphs[i] for i in keep]
             costs = costs[keep]
