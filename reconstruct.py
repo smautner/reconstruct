@@ -68,9 +68,10 @@ instancemakerparams =maketasks(params_insta)
 #  OPTIONS FOR SOLVER 
 ##############################
 params_opt = {
-    'keyorder' :  ["core_sizes","removeworst",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter"],
+    'keyorder' :  ["core_sizes","context_size","removeworst",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter"],
     "core_sizes" : [[0,2,4]], # on exp graph
-    "removeworst":[.25,.5],
+    "removeworst":[0],
+    "context_size":[2], # you want 2 or 4 ...
     "n_iter":[30], # 5 just for ez problems
     "keeptop":[5], # 5+  15 pareto things
     'multiproc': [10],
@@ -94,7 +95,10 @@ def make_task_file():
         if rrg_iter > 0:
             graphs = rrg.rule_rand_graphs(graphs, numgr=500,iter=rrg_iter)[0]
         return graphs
-    dumpfile([maketsk(args) for args in tasklist], ".tasks")
+
+    import extensions.lsggscramble  as scram
+    data = scram.funmap(maketsk, tasklist,poolsize=20)
+    dumpfile(data, ".tasks")
     #dumpfile([ rg.make_graphs_static(maxdeg=3, **args) for args in tasklist], ".tasks")
 
 def load_chem(AID):
