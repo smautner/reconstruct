@@ -39,9 +39,10 @@ EXPERIMENT_REPEATS = 20
 # 1. param dict
 
 params_graphs = {
-    'keyorder' :  ["number_of_graphs", "size_of_graphs","node_labels","edge_labels","allow_cycles","labeldistribution","maxdeg","rrg_iter"],
+    'keyorder' :  ["number_of_graphs", "min_count","size_of_graphs","node_labels","edge_labels","allow_cycles","labeldistribution","maxdeg","rrg_iter"],
     'allow_cycles':[False], # cycles are very bad
     'number_of_graphs': [30],
+    'min_count':[1],
     'size_of_graphs' :[8] ,
     'node_labels' : [4],
     'edge_labels' : [2], # using 5 here mega ga fails
