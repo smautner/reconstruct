@@ -39,10 +39,9 @@ EXPERIMENT_REPEATS = 20
 # 1. param dict
 
 params_graphs = {
-    'keyorder' :  ["number_of_graphs", "min_count","size_of_graphs","node_labels","edge_labels","allow_cycles","labeldistribution","maxdeg","rrg_iter"],
+    'keyorder' :  ["number_of_graphs", "size_of_graphs","node_labels","edge_labels","allow_cycles","labeldistribution","maxdeg","rrg_iter"],
     'allow_cycles':[False], # cycles are very bad
     'number_of_graphs': [30],
-    'min_count':[1],
     'size_of_graphs' :[8] ,
     'node_labels' : [4],
     'edge_labels' : [2], # using 5 here mega ga fails
@@ -69,9 +68,10 @@ instancemakerparams =maketasks(params_insta)
 #  OPTIONS FOR SOLVER 
 ##############################
 params_opt = {
-    'keyorder' :  ["core_sizes","context_size","removeworst",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter"],
+    'keyorder' :  ["core_sizes","min_count","context_size","removeworst",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter"],
     "core_sizes" : [[0,2,4]], # on exp graph
     "removeworst":[0],
+    'min_count':[1],
     "context_size":[2], # you want 2 or 4 ...
     "n_iter":[10], # 5 just for ez problems
     "keeptop":[5], # 5+  15 pareto things
