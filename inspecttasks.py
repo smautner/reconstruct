@@ -21,3 +21,5 @@ for graphs in graphsets:
     print("avg size last 20",size(graphs[-20:]))
     print ("labels all nodelabels/edgelabels:",labels(graphs))
     print("labels last 20  n/l:",labels(graphs[-20:]))
+    print ("graphs in set %d" % len(graphs))
+    print ("size last 20 %s" % str([len(g) for g in graphs]))
