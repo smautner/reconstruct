@@ -111,6 +111,7 @@ def load_chem(AID):
     with open(AID, 'r') as handle:
         js = json.load(handle)
         res = [sg.node_link_graph(jsg) for jsg in js]
+        res = [g for g in res if len(g)> 2] 
         res = [g for g in res if nx.is_connected(g)]  # rm not connected crap
         for g in res:g.graph={}
         zz=pp.MYOPTIMIZER()
