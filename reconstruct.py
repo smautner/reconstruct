@@ -118,9 +118,12 @@ def load_chem(AID):
         res2 = list(zz._duplicate_rm(res))
         print ("duplicates in chem files:%d"% (len(res)-len(res2)))
         print (zz.collisionlist)
-        for a,b in zz.collisionlist:
-            gprint([res[a],res[b]])
-
+        #for a,b in zz.collisionlist:
+        #    gprint([res[a],res[b]])
+        zomg = [(len(g),g) for g in res]
+        zomg.sort(key=lambda x:x[0])
+        cut = int(len(res)*.1)
+        res2 = [b for l,b in zomg[cut:-cut]]
     return res2
 
 def get_chem_filenames():

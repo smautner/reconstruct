@@ -1,5 +1,5 @@
 import reconstruct as r
-graphsets = r.loadfile(".tasks")
+graphsets = r.loadfile(".chemtasks")
 import numpy as np
 from structout import gprint
 
@@ -22,4 +22,4 @@ for graphs in graphsets:
     print ("labels all nodelabels/edgelabels:",labels(graphs))
     print("labels last 20  n/l:",labels(graphs[-20:]))
     print ("graphs in set %d" % len(graphs))
-    print ("size last 20 %s" % str([len(g) for g in graphs]))
+    print ("size last 20 %s" % str([len(g) for g in graphs[-20:]]))
