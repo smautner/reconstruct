@@ -63,9 +63,9 @@ if False:
     _degre["maxdeg"]=[3,4,5]
     _sgr = copy.deepcopy(params_graphs)
     _sgr['number_of_graphs']=[20,30,40,50]
-    tasklist  = maketasks(params_graphs ) # boring task list
-else:
     tasklist = [ b  for thing in [_nl,_rrg,_degre,_sgr] for b in maketasks(thing)  ]
+else:
+    tasklist  = maketasks(params_graphs) # boring task list
 
 
 ######################
@@ -116,6 +116,7 @@ if True:
     _d["core_sizes"] = [[0,2],[0],[0,2,4]]
 
     Optimizerparams = [b for thing in [_a,_b,_c,_d] for b in maketasks(thing)]
+    Optimizernames = ["cont:2, core 0",'cont.5 core 024','cont1,core02']+[ 'cont1 %s'% str(thing) for thing in  [[0,2],[0],[0,2,4]]]
 else:
     Optimizerparams = maketasks(params_opt)
 
@@ -264,7 +265,8 @@ def report(folder = '.res', tasklist=None):
         im = imtostr(b)
         gr = grtostr(a)
         op = optitostr(c)
-        dat[(gr,op)][im]= getvalue(p, nores, nosucc, folder)
+        op=Optimizernames[c]
+        dat["asd"][op]= getvalue(p, nores, nosucc, folder)
 
     #mod = lambda x : str(x).replace("_",' ')
     print ("nores",nores)
@@ -273,7 +275,7 @@ def report(folder = '.res', tasklist=None):
     print ("maxrnd:", max([int(b) for c in dat.values() for a,b in c.values()]))
 
     print (pandas.DataFrame(dat).to_string()) 
-    #print (pandas.DataFrame(dat).to_latex()) 
+    print (pandas.DataFrame(dat).to_latex()) 
 
 
 
