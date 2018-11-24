@@ -1,6 +1,6 @@
 #!/bin/bash
 #$ -cwd
-#$ -l h_vmem=2G
+#$ -l h_vmem=4G
 #$ -M mautner@cs.uni-freiburg.de
 #$ -m as
 #$ -pe smp 8
@@ -11,5 +11,5 @@
 ##mkdir -p /home/mautner/JOBZ/reconstr_o/
 ##mkdir -p /home/mautner/JOBZ/reconstr_e/
 python reconstruct.py $SGE_TASK_ID
-#qsub -V -t 1-260  runall_sge.sh
+#qsub -V -t 1-900  runall_sge.sh
 

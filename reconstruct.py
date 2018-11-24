@@ -54,7 +54,7 @@ params_graphs = {
 
 #explore nodelabels, rrg , degree number of start graphs
 import copy
-if False:
+if True:
     _nl = copy.deepcopy(params_graphs)
     _nl["node_labels"]=[2,4,6,8,10,12,14]
     _rrg = copy.deepcopy(params_graphs)
@@ -63,9 +63,11 @@ if False:
     _degre["maxdeg"]=[3,4,5]
     _sgr = copy.deepcopy(params_graphs)
     _sgr['number_of_graphs']=[20,30,40,50]
-    tasklist  = maketasks(params_graphs ) # boring task list
-else:
     tasklist = [ b  for thing in [_nl,_rrg,_degre,_sgr] for b in maketasks(thing)  ]
+    tasknamezz= [ ("nodelabels",x) for x in [2,4,6,8,10,12,14]] + [('rrg',x) for x in [2,3,4,5]]+[('maxdeg',x) for x in [3,4,5]]+[('numgr',x) for x in [20,30,40,50]]
+
+else:
+    tasklist  = maketasks(params_graphs ) # boring task list
 
 
 ######################
@@ -96,7 +98,7 @@ params_opt = {
     "graph_size_limiter":[ lambda x: x.max()+(int(x.std()) or 5) ]
 }
 
-if True:
+if False:
     #%core sizes vs insterface size might tell a story, artificial: thick2 core 0 ,,
     #%edge_as_if core 012(old coordinates);; r0,1 , thickness 1 
 
@@ -255,7 +257,6 @@ def report(folder = '.res', tasklist=None):
 
     problems = id_to_options(tasklist= tasklist)
 
-    for e in problems: print (e)
     dat= defaultdict(dict)
     nores = []
     nosucc =[]
@@ -264,7 +265,8 @@ def report(folder = '.res', tasklist=None):
         im = imtostr(b)
         gr = grtostr(a)
         op = optitostr(c)
-        dat[(gr,op)][im]= getvalue(p, nores, nosucc, folder)
+        x,y = tasknamezz[a]
+        dat[x][y]= getvalue(p, nores, nosucc, folder)
 
     #mod = lambda x : str(x).replace("_",' ')
     print ("nores",nores)
@@ -273,7 +275,7 @@ def report(folder = '.res', tasklist=None):
     print ("maxrnd:", max([int(b) for c in dat.values() for a,b in c.values()]))
 
     print (pandas.DataFrame(dat).to_string()) 
-    #print (pandas.DataFrame(dat).to_latex()) 
+    print (pandas.DataFrame(dat).to_latex()) 
 
 
 
