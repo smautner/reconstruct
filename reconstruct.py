@@ -35,7 +35,7 @@ def maketasks(params):
 ##  OPTIONS FOR GRAPHS
 ##########################################
 
-EXPERIMENT_REPEATS = 20
+EXPERIMENT_REPEATS = 50
 # 1. param dict
 
 params_graphs = {
@@ -69,11 +69,11 @@ instancemakerparams =maketasks(params_insta)
 ##############################
 params_opt = {
     'keyorder' :  ["core_sizes","min_count","context_size","removeworst",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter"],
-    "core_sizes" : [[0,2,4,6]], # on exp graph
+    "core_sizes" : [[0,1,2,3,4]], # on exp graph
     "removeworst":[0],
-    'min_count':[2],
+    'min_count':[1],
     "context_size":[1], # you want 2 or 4 ...
-    "n_iter":[10], # 5 just for ez problems
+    "n_iter":[20], # 5 just for ez problems
     "keeptop":[5], # 5+  15 pareto things
     'multiproc': [8],
     "add_grammar_rules":[False],
@@ -94,7 +94,7 @@ def make_task_file():
         rrg_iter = args.pop("rrg_iter")
         graphs = rg.make_graphs_static(**args)
         if rrg_iter > 0:
-            graphs = rrg.rule_rand_graphs(graphs, numgr=500,iter=rrg_iter)[0]
+            graphs = rrg.rule_rand_graphs(graphs, numgr=550,iter=rrg_iter)[0]
         return graphs
 
     import extensions.lsggscramble  as scram
