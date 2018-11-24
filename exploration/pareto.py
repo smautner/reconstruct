@@ -161,7 +161,7 @@ class MYOPTIMIZER(object):
             costs = costs[keep]
 
         # need to keep x best in each category
-        costs_ranked = np.argsort(costs,axis=0)[:self.keeptop]
+        costs_ranked = np.argsort(costs,axis=0)[:self.keeptop,[0,1,3]]
         want , counts = np.unique(costs_ranked,return_counts=True) 
 
         res = [graphs[idd] for idd,count in zip( want,counts) if count > 0 ] 
@@ -172,7 +172,7 @@ class MYOPTIMIZER(object):
         # OK SO THE TRICK IS TO ALSO GET SOME FROM THE PARETO FRONT
         dontwant = [i for i in range(len(graphs)) if i not in want]
         restgraphs = [graphs[i] for i in dontwant]
-        restcosts = costs[dontwant]
+        restcosts = costs[dontwant][:,[0,1,2]]
         paretoselectedgraphs = paretof._pareto_set(restgraphs, restcosts)
         random.shuffle(paretoselectedgraphs)
         res+=paretoselectedgraphs[:15]
@@ -221,8 +221,7 @@ class MYOPTIMIZER(object):
     def get_costs(self, graphs):
         timenow=time.time()
         costs = self.multiobj_est.decision_function(graphs)
-        logger.debug("costs: best dist: %f (%.2fs)" %  (np.min(costs[:,0]) ,time.time()-timenow))
-
+        #logger.debug("costs: best dist: %f (%.2fs)" %  (np.min(costs[:,0]) ,time.time()-timenow))
         sort = np.argsort(costs,axis=0)
         nucol = np.argsort(sort,axis=0)
         current_val = -1
