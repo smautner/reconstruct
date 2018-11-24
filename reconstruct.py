@@ -54,7 +54,7 @@ params_graphs = {
 
 #explore nodelabels, rrg , degree number of start graphs
 import copy
-if True:
+if False:
     _nl = copy.deepcopy(params_graphs)
     _nl["node_labels"]=[2,4,6,8,10,12,14]
     _rrg = copy.deepcopy(params_graphs)
@@ -85,7 +85,7 @@ instancemakerparams =maketasks(params_insta)
 ##############################
 params_opt = {
     'keyorder' :  ["core_sizes","min_count","context_size","removeworst",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter"],
-    "core_sizes" : [[0,1,2,3,4]], # on exp graph
+    "core_sizes" : [[0,2,4]], # on exp graph
     "removeworst":[0],
     'min_count':[1],
     "context_size":[2], # you want 2 or 4 ...
