@@ -1,18 +1,18 @@
 #!/bin/bash
-#PBS -l nodes=1:ppn=7,mem=16gb
+#PBS -l nodes=1:ppn=20,mem=120gb
 #PBS -N mabob
 #PBS -q "short"
 ##PBS -l walltime=24:00:00
-#PBS -d /home/fr/fr_fr/fr_sm1105/code/reconstruct
-#PBS -o /home/fr/fr_fr/fr_sm1105/code/reconstruct/OUT
+#PBS -d /home/fr/fr_fr/fr_sm1105/code/reconstruct_chem
+#PBS -o /home/fr/fr_fr/fr_sm1105/code/reconstruct_chem/OUT
 #PBS -j oe
 
 
 
-cd /home/fr/fr_fr/fr_sm1105/code/reconstruct
+cd /home/fr/fr_fr/fr_sm1105/code/reconstruct_chem
 
 
-python3 reconstruct.py $1
+python3 reconstruct.py chem $1
 
 
 

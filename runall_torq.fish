@@ -1,10 +1,9 @@
 
 
-set lol loop di doo i am da Q
 
 
-for i in (seq 1 240)
-    set word $lol[ (math "$i % 8") ]
+for i in (seq 1 100)
+    set word "acid_$i"
     qsub -q short torq_single.sh -F "$i" -N "$word"
 end
 
