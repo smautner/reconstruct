@@ -54,16 +54,18 @@ params_graphs = {
 
 #explore nodelabels, rrg , degree number of start graphs
 import copy
-nl = copy.deepcopy(params_graphs)
-nl["node_labels"]=[2,4,6,8,10,12,14]
-rrg = copy.deepcopy(params_graphs)
-rrg["rrg"]=[2,3,4,5]
-degre = copy.deepcopy(params_graphs)
-degre["maxdeg"]=[3,4,5]
-sgr = copy.deepcopy(params_graphs)
-sgr['number_of_graphs']=[20,30,40,50]
-#tasklist  = maketasks(params_graphs ) # boring task list
-tasklist = [ b  for thing in [nl,rrg,degre,sgr] for b in maketasks(thing)  ]
+if False:
+    _nl = copy.deepcopy(params_graphs)
+    _nl["node_labels"]=[2,4,6,8,10,12,14]
+    _rrg = copy.deepcopy(params_graphs)
+    _rrg["rrg"]=[2,3,4,5]
+    _degre = copy.deepcopy(params_graphs)
+    _degre["maxdeg"]=[3,4,5]
+    _sgr = copy.deepcopy(params_graphs)
+    _sgr['number_of_graphs']=[20,30,40,50]
+    tasklist  = maketasks(params_graphs ) # boring task list
+else:
+    tasklist = [ b  for thing in [_nl,_rrg,_degre,_sgr] for b in maketasks(thing)  ]
 
 
 ######################
@@ -85,7 +87,7 @@ params_opt = {
     "core_sizes" : [[0,1,2,3,4]], # on exp graph
     "removeworst":[0],
     'min_count':[1],
-    "context_size":[1], # you want 2 or 4 ...
+    "context_size":[2], # you want 2 or 4 ...
     "n_iter":[20], # 5 just for ez problems
     "keeptop":[5], # 5+  15 pareto things
     'multiproc': [8],
@@ -93,8 +95,29 @@ params_opt = {
     "squared_error": [False], # False slightly better 590:572 
     "graph_size_limiter":[ lambda x: x.max()+(int(x.std()) or 5) ]
 }
-Optimizerparams = maketasks(params_opt)
 
+if True:
+    #%core sizes vs insterface size might tell a story, artificial: thick2 core 0 ,,
+    #%edge_as_if core 012(old coordinates);; r0,1 , thickness 1 
+
+    _a = copy.deepcopy(params_opt)
+    _a["context_size"] = [4]
+    _a["core_sizes"] = [[0]]
+    _b = copy.deepcopy(params_opt)
+    _b["context_size"] = [1]
+    _b["core_sizes"] = [[0,2,4]]
+    _c = copy.deepcopy(params_opt)
+    _c["context_size"] = [2]
+    _c["core_sizes"] = [[0,2]]
+     #%grammar gen arguments vs recovery arguments table fix thickness... smaller
+    #%core, larger, same
+    _d = copy.deepcopy(params_opt)
+    _d["context_size"] = [2]
+    _d["core_sizes"] = [[0,2],[0],[0,2,4]]
+
+    Optimizerparams = [b for thing in [_a,_b,_c,_d] for b in maketasks(thing)]
+else:
+    Optimizerparams = maketasks(params_opt)
 
 
 
@@ -102,14 +125,15 @@ Optimizerparams = maketasks(params_opt)
 # WRITING TASK FILES 
 ####################################
 # 3. loop over task
-def make_task_file():
-    def maketsk(args):
-        rrg_iter = args.pop("rrg_iter")
-        graphs = rg.make_graphs_static(**args)
-        if rrg_iter > 0:
-            graphs = rrg.rule_rand_graphs(graphs, numgr=550,iter=rrg_iter)[0]
-        return graphs
 
+
+def maketsk(args):
+    rrg_iter = args.pop("rrg_iter")
+    graphs = rg.make_graphs_static(**args)
+    if rrg_iter > 0:
+        graphs = rrg.rule_rand_graphs(graphs, numgr=550,iter=rrg_iter)[0]
+    return graphs
+def make_task_file():
     import extensions.lsggscramble  as scram
     data = scram.funmap(maketsk, tasklist,poolsize=20)
     dumpfile(data, ".tasks")
