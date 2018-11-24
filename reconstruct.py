@@ -122,7 +122,14 @@ def load_chem(AID):
     return res2
 
 def get_chem_filenames():
+    # these are size ~500
     files="""AID1224837.sdf.json  AID1454.sdf.json  AID1987.sdf.json  AID618.sdf.json     AID731.sdf.json     AID743218.sdf.json  AID904.sdf.json AID1224840.sdf.json  AID1554.sdf.json  AID2073.sdf.json  AID720709.sdf.json  AID743202.sdf.json  AID828.sdf.json"""
+    # these are size ~4000
+    files='''AID119.sdf.json
+            AID1345082.sdf.json
+            AID588590.sdf.json
+            AID624202.sdf.json
+            AID977611.sdf.json'''
     files = files.split()
     return files
 
