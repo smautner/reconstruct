@@ -60,7 +60,7 @@ tasklist  = maketasks(params_graphs )
 params_insta= {
     'keyorder' :  ["n_landmarks", "n_neighbors"],
     'n_landmarks' : [10], # seems to help a little with larger problems, >3 recommended
-    'n_neighbors' :[100] # seems to not matter much 25 and 50 look the same, 15 and 75 also
+    'n_neighbors' :[50] # seems to not matter much 25 and 50 look the same, 15 and 75 also
     }
 instancemakerparams =maketasks(params_insta)
 
@@ -72,7 +72,7 @@ params_opt = {
     "core_sizes" : [[0,2,4,6]], # on exp graph
     "removeworst":[0],
     'min_count':[2],
-    "context_size":[1], # you want 2 or 4 ...
+    "context_size":[4], # you want 2 or 4 ...
     "n_iter":[10], # 5 just for ez problems
     "keeptop":[5], # 5+  15 pareto things
     'multiproc': [8],
@@ -218,7 +218,6 @@ def report(folder = '.res', tasklist=None):
 
     problems = id_to_options(tasklist= tasklist)
 
-    for e in problems: print (e)
     dat= defaultdict(dict)
     nores = []
     nosucc =[]
@@ -227,7 +226,8 @@ def report(folder = '.res', tasklist=None):
         im = imtostr(b)
         gr = grtostr(a)
         op = optitostr(c)
-        dat[(gr,op)][im]= getvalue(p, nores, nosucc, folder)
+        ch = get_chem_filenames()                                               
+        dat["conext:2"][ch[a][:-9]]= getvalue(p, nores, nosucc, folder)
 
     #mod = lambda x : str(x).replace("_",' ')
     print ("nores",nores)
@@ -236,7 +236,7 @@ def report(folder = '.res', tasklist=None):
     print ("maxrnd:", max([int(b) for c in dat.values() for a,b in c.values()]))
 
     print (pandas.DataFrame(dat).to_string()) 
-    #print (pandas.DataFrame(dat).to_latex()) 
+    print (pandas.DataFrame(dat).to_latex()) 
 
 
 
