@@ -52,7 +52,20 @@ params_graphs = {
     'rrg_iter':[3]
 }
 
-tasklist  = maketasks(params_graphs )
+#explore nodelabels, rrg , degree number of start graphs
+import copy
+nl = copy.deepcopy(params_graphs)
+nl["node_labels"]=[2,4,6,8,10,12,14]
+rrg = copy.deepcopy(params_graphs)
+rrg["rrg"]=[2,3,4,5]
+degre = copy.deepcopy(params_graphs)
+degre["maxdeg"]=[3,4,5]
+sgr = copy.deepcopy(params_graphs)
+sgr['number_of_graphs']=[20,30,40,50]
+#tasklist  = maketasks(params_graphs ) # boring task list
+tasklist = [ b  for thing in [nl,rrg,degre,sgr] for b in maketasks(thing)  ]
+
+
 ######################
 #  OPTIONS FOR PROBLEM GENERATOR
 #####################15
