@@ -40,7 +40,7 @@ EXPERIMENT_REPEATS = 50
 
 params_graphs = {
     'keyorder' :  ["number_of_graphs", "size_of_graphs","node_labels","edge_labels","allow_cycles","labeldistribution","maxdeg","rrg_iter"],
-    'allow_cycles':[False], # cycles are very bad
+    'allow_cycles':[True], # cycles are very bad
     'number_of_graphs': [30],
     'size_of_graphs' :[8] ,
     'node_labels' : [4],
@@ -75,8 +75,8 @@ else:
 # call with reconstruct.py TASKID  REPEATID
 params_insta= {
     'keyorder' :  ["n_landmarks", "n_neighbors"],
-    'n_landmarks' : [10], # seems to help a little with larger problems, >3 recommended
-    'n_neighbors' :[100] # seems to not matter much 25 and 50 look the same, 15 and 75 also
+    'n_landmarks' : [5,10,20], # seems to help a little with larger problems, >3 recommended
+    'n_neighbors' :[25,50,100] # seems to not matter much 25 and 50 look the same, 15 and 75 also
     }
 instancemakerparams =maketasks(params_insta)
 
@@ -267,17 +267,18 @@ def report(folder = '.res', tasklist=None):
         op = optitostr(c)
         #x,y = tasknamezz[a]
         #dat[x][y]= getvalue(p, nores, nosucc, folder)
-        op=Optimizernames[c]
-        dat["asd"][op]= getvalue(p, nores, nosucc, folder)
+        #op=Optimizernames[c]
+        dat[op][gr]= getvalue(p, nores, nosucc, folder)
 
     #mod = lambda x : str(x).replace("_",' ')
     print ("nores",nores)
     print ('nosucc',nosucc)
     print ("sumsuccess:", sum([int(a) for c in dat.values() for a,b in c.values()]))
     print ("maxrnd:", max([int(b) for c in dat.values() for a,b in c.values()]))
-
+    
+    
     print (pandas.DataFrame(dat).to_string()) 
-    print (pandas.DataFrame(dat).to_latex()) 
+    #print (pandas.DataFrame(dat).to_latex()) 
 
 
 
