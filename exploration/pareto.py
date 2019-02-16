@@ -340,8 +340,8 @@ class LocalLandmarksDistanceOptimizer(object):
             self.grammar.set_core_size( cs+self.cs2cs )
 
         else: # fir normaly
-            from util.util import loadfile 
-            graphs = loadfile('.tasks')[0][:-50]
+            #from util.util import loadfile 
+            #graphs = loadfile('.tasks')[0][:-50]
             self.grammar.fit(graphs)
 
         if self.add_grammar_rules:
