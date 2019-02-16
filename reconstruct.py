@@ -40,7 +40,7 @@ EXPERIMENT_REPEATS = 50
 
 params_graphs = {
     'keyorder' :  ["number_of_graphs", "size_of_graphs","node_labels","edge_labels","allow_cycles","labeldistribution","maxdeg","rrg_iter"],
-    'allow_cycles':[False], # cycles are very bad
+    'allow_cycles':[True], # cycles are very bad
     'number_of_graphs': [30],
     'size_of_graphs' :[8] ,
     'node_labels' : [4],
@@ -54,7 +54,7 @@ params_graphs = {
 
 #explore nodelabels, rrg , degree number of start graphs
 import copy
-if True:
+if False:
     _nl = copy.deepcopy(params_graphs)
     _nl["node_labels"]=[2,4,6,8,10,12,14]
     _rrg = copy.deepcopy(params_graphs)
@@ -75,17 +75,31 @@ else:
 # call with reconstruct.py TASKID  REPEATID
 params_insta= {
     'keyorder' :  ["n_landmarks", "n_neighbors"],
-    'n_landmarks' : [10], # seems to help a little with larger problems, >3 recommended
-    'n_neighbors' :[100] # seems to not matter much 25 and 50 look the same, 15 and 75 also
+    'n_landmarks' : [5,10,20], # seems to help a little with larger problems, >3 recommended
+    'n_neighbors' :[25,50,100] # seems to not matter much 25 and 50 look the same, 15 and 75 also
     }
-instancemakerparams =maketasks(params_insta)
+
+params_insta2= {
+    'keyorder' :  ["n_landmarks", "n_neighbors"],
+    'n_landmarks' : [25,30], # seems to help a little with larger problems, >3 recommended
+    'n_neighbors' :[25,50,100,150] # seems to not matter much 25 and 50 look the same, 15 and 75 also
+    }
+
+params_insta3 = {
+    'keyorder' :  ["n_landmarks", "n_neighbors"],
+    'n_landmarks' : [5,10,20], # seems to help a little with larger problems, >3 recommended
+    'n_neighbors' :[150] # seems to not matter much 25 and 50 look the same, 15 and 75 also
+    }
+
+
+instancemakerparams = maketasks(params_insta)+ maketasks(params_insta2)+maketasks(params_insta3)
 
 ############################
 #  OPTIONS FOR SOLVER 
 ##############################
 params_opt = {
     'keyorder' :  ["core_sizes","min_count","context_size","removeworst",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter"],
-    "core_sizes" : [[0,1,2,3,4]], # on exp graph
+    "core_sizes" : [[0,2,4]], # on exp graph
     "removeworst":[0],
     'min_count':[1],
     "context_size":[2], # you want 2 or 4 ...
@@ -267,17 +281,19 @@ def report(folder = '.res', tasklist=None):
         op = optitostr(c)
         #x,y = tasknamezz[a]
         #dat[x][y]= getvalue(p, nores, nosucc, folder)
-        op=Optimizernames[c]
-        dat["asd"][op]= getvalue(p, nores, nosucc, folder)
+        #op=Optimizernames[c]
+        y,z = im.split(" ")
+        dat[y][z]= getvalue(p, nores, nosucc, folder)
 
     #mod = lambda x : str(x).replace("_",' ')
     print ("nores",nores)
     print ('nosucc',nosucc)
     print ("sumsuccess:", sum([int(a) for c in dat.values() for a,b in c.values()]))
     print ("maxrnd:", max([int(b) for c in dat.values() for a,b in c.values()]))
-
+    
+    
     print (pandas.DataFrame(dat).to_string()) 
-    print (pandas.DataFrame(dat).to_latex()) 
+    #print (pandas.DataFrame(dat).to_latex()) 
 
 
 
