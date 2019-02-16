@@ -78,7 +78,21 @@ params_insta= {
     'n_landmarks' : [5,10,20], # seems to help a little with larger problems, >3 recommended
     'n_neighbors' :[25,50,100] # seems to not matter much 25 and 50 look the same, 15 and 75 also
     }
-instancemakerparams =maketasks(params_insta)
+
+params_insta2= {
+    'keyorder' :  ["n_landmarks", "n_neighbors"],
+    'n_landmarks' : [25,30], # seems to help a little with larger problems, >3 recommended
+    'n_neighbors' :[25,50,100,150] # seems to not matter much 25 and 50 look the same, 15 and 75 also
+    }
+
+params_insta3 = {
+    'keyorder' :  ["n_landmarks", "n_neighbors"],
+    'n_landmarks' : [5,10,20], # seems to help a little with larger problems, >3 recommended
+    'n_neighbors' :[150] # seems to not matter much 25 and 50 look the same, 15 and 75 also
+    }
+
+
+instancemakerparams = maketasks(params_insta)+ maketasks(params_insta2)+maketasks(params_insta3)
 
 ############################
 #  OPTIONS FOR SOLVER 
@@ -268,7 +282,8 @@ def report(folder = '.res', tasklist=None):
         #x,y = tasknamezz[a]
         #dat[x][y]= getvalue(p, nores, nosucc, folder)
         #op=Optimizernames[c]
-        dat[op][gr]= getvalue(p, nores, nosucc, folder)
+        y,z = im.split(" ")
+        dat[y][z]= getvalue(p, nores, nosucc, folder)
 
     #mod = lambda x : str(x).replace("_",' ')
     print ("nores",nores)
