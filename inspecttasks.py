@@ -1,5 +1,7 @@
 import reconstruct as r
-graphsets = r.loadfile(".chemtasks")
+import sys
+filename = sys.argv[1]
+graphsets = r.loadfile(filename)
 import numpy as np
 from structout import gprint
 
