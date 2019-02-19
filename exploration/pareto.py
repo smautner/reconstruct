@@ -109,6 +109,7 @@ class MYOPTIMIZER(object):
     @timeit
     def optimize(self, graphs):
         """Optimize iteratively."""
+        starttime= time.time()
         assert (self.grammar.is_fit())
         assert (self.multiobj_est.is_fit())
 
@@ -122,13 +123,13 @@ class MYOPTIMIZER(object):
             logger.debug("++++++++  START OPTIMIZATION STEP %d +++++++" % i)
             graphs, status= self.optimize_step(graphs)
             if status:
-                return True,i
+                return True,i,time.time()-starttime
             if not graphs:
                 logger.debug("ran out of graphs")
-                return False,i
+                return False,i, time.time()-starttime
 
         costs = self.get_costs(graphs)
-        return self.checkstatus(costs, graphs),i
+        return self.checkstatus(costs, graphs),i, time.time()-starttime
 
     def optimize_step(self, graphs):
         # filter, expand, chk duplicates

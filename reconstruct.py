@@ -75,8 +75,8 @@ else:
 # call with reconstruct.py TASKID  REPEATID
 params_insta= {
     'keyorder' :  ["n_landmarks", "n_neighbors"],
-    'n_landmarks' : [5,10,20], # seems to help a little with larger problems, >3 recommended
-    'n_neighbors' :[25,50,100] # seems to not matter much 25 and 50 look the same, 15 and 75 also
+    'n_landmarks' : [10,15,20], # seems to help a little with larger problems, >3 recommended
+    'n_neighbors' :[50,75,100,125,200,400] # seems to not matter much 25 and 50 look the same, 15 and 75 also
     }
 
 
@@ -94,7 +94,7 @@ params_opt = {
     "context_size":[2], # you want 2 or 4 ...
     "n_iter":[20], # 5 just for ez problems
     "keeptop":[5], # 5+  15 pareto things
-    'multiproc': [8],
+    'multiproc': [4],
     "add_grammar_rules":[False],
     "squared_error": [False], # False slightly better 590:572 
     "graph_size_limiter":[ lambda x: x.max()+(int(x.std()) or 5) ]
@@ -240,12 +240,14 @@ def getvalue(p, nores, nosucc, folder): # nosucc and nores are just collecting s
     completed = 0
     allsteps=[-1]
     success = 0
+    times = []
     for task in range(EXPERIMENT_REPEATS):
         taskname = "%d" % (p+task)
         fname = folder+"/"+taskname
         if os.path.isfile(fname):
             completed +=1
-            res, steps = jloadfile(fname)
+            res, steps, time = jloadfile(fname)
+            times.append(time)
             success += res
             if not res:   # FAIL
                 nosucc.append(taskname)
@@ -254,7 +256,8 @@ def getvalue(p, nores, nosucc, folder): # nosucc and nores are just collecting s
         else: 
             nores.append(taskname)
     allsteps = np.array(allsteps)
-    return success,  allsteps.max()
+    times = np.array(times)
+    return success,  allsteps.max(), times.mean()
 
 def report(folder = '.res', tasklist=None):
 
