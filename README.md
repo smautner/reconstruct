@@ -15,7 +15,8 @@ pip install git+https://github.com/fabriziocosta/EDeN.git --user
 ```
 python3 reconstruct.py maketasks
 # you can inspect the set via
-# python3 inspecttasks.py .tasks 
+# python3 inspecttasks.py .tasks
+# util/rule_rand_graphs.py contains even more options for graph generation
 ```
 
 2. run the experiments.
