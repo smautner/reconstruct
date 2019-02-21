@@ -1,3 +1,8 @@
+#### notebooks and pareto implementation can be found here:
+https://github.com/fabriziocosta/constrActive
+
+
+
 # Installation
 
 this should cover most of the depencencies 
