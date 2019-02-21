@@ -277,8 +277,8 @@ def report(folder = '.res', tasklist=None):
     #mod = lambda x : str(x).replace("_",' ')
     print ("nores",nores)
     print ('nosucc',nosucc)
-    print ("sumsuccess:", sum([int(a) for c in dat.values() for a,b in c.values()]))
-    print ("maxrnd:", max([int(b) for c in dat.values() for a,b in c.values()]))
+    print ("sumsuccess:", sum([int(a) for c in dat.values() for a,b,_ in c.values()]))
+    print ("maxrnd:", max([int(b) for c in dat.values() for a,b,_ in c.values()]))
     
     
     print (pandas.DataFrame(dat).to_string()) 
