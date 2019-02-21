@@ -43,6 +43,12 @@ neigh:50    (31, 8)  (38, 19)  (36, 15)  (36, 15)  (29, 18)
 
 
 
-# chemical datasets
+# Chemical datasets
 
 use maketaskschem and reportchem respectively :)  
+
+
+# Sample output
+
+![examample output](reconstruct.png)
+
