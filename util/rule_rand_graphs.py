@@ -2,23 +2,19 @@ import random
 
 
 
-import graphlearn3.util.util as u
+import graphlearn.util.util as u
 from exploration.pareto  import MYOPTIMIZER as myop
 
 
 
-import graphlearn3.lsgg as lsgg
+import graphlearn.local_substitution_graph_grammar as lsgg
 def rule_rand_graphs(input_set, numgr =100, iter= 1):
 
 
 
     # make grammar, fit on input
-    grammar = lsgg.lsgg(decomposition_args={"radius_list": [1,2],
-                                     "thickness_list": [ 1] },
-                 filter_args={"min_cip_count": 1,
-                              "min_interface_count": 2},
-                 cip_root_all = False,
-                 half_step_distance= False )
+    grammar = lsgg.LocalSubstitutionGraphGrammar(radii=[1,2], thickness=1,
+                 filter_min_cip=1, filter_min_interface=2, nodelevel_radius_and_thickness=True)
     grammar.fit(input_set)
 
     cleaner = myop()

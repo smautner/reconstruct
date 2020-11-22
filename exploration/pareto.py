@@ -5,7 +5,7 @@ import queue
 import heapq
 import numpy as np
 from eden.util import timeit
-from graphlearn3.lsgg import lsgg
+from graphlearn.local_substitution_graph_grammar import LocalSubstitutionGraphGrammar as lsgg
 from toolz.curried import compose, map, concat
 from exploration.pareto_funcs import _manage_int_or_float
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ import eden.graph
 import itertools
 import multiprocessing
 
-import graphlearn3.lsgg_cip as glcip
+import graphlearn.lsgg_core_interface_pair as glcip
 
 class hashvec(object):
 
@@ -299,11 +299,11 @@ class LocalLandmarksDistanceOptimizer(object):
         self.expand_max_frontier = expand_max_frontier
         self.max_size_frontier = max_size_frontier
         self.output_k_best = output_k_best
-        self.grammar = lsgg_size_hack(cip_root_all=False, half_step_distance=True)
-        self.grammar.set_core_size(core_sizes)
-        self.grammar.decomposition_args['thickness_list'] = [context_size]
+        self.grammar = lsgg_size_hack(nodelevel_radius_and_thickness=False) #cip_root_all=False, half_step_distance=True)
+        self.grammar.radii = core_sizes #self.grammar.set_core_size(core_sizes)
+        self.grammar.thickness = context_size #self.grammar.decomposition_args['thickness_list'] = [context_size]
         #self.grammar.set_min_count(min_count) interfacecount 1 makes no sense
-        self.grammar.filter_args['min_cip_count'] = min_count
+        self.grammar.min_cip = min_count #self.grammar.filter_args['min_cip_count'] = min_count
         self.optiopts = kwargs
         self.cs2cs = cs2cs
         

@@ -21,7 +21,6 @@ USAGE:
     python3 -c "import reconstruct as r; r.report()"   to see result
 '''
 
-#exit()
 
 def maketasks(params):
     # want a list
@@ -76,8 +75,8 @@ else:
 # call with reconstruct.py TASKID  REPEATID
 params_insta= {
     'keyorder' :  ["n_landmarks", "n_neighbors"],
-    'n_landmarks' : [10], # [10,15,20], # seems to help a little with larger problems, >3 recommended
-    'n_neighbors' : [100] # [50,75,100,125,200,400] # seems to not matter much 25 and 50 look the same, 15 and 75 also
+    'n_landmarks' : [10,15,20], # seems to help a little with larger problems, >3 recommended
+    'n_neighbors' :[50,75,100,125,200,400] # seems to not matter much 25 and 50 look the same, 15 and 75 also
     }
 
 
@@ -319,13 +318,12 @@ if __name__=="__main__":
         make_chem_task_file()
         exit()
     else:
-        #exit()
         #print(sys.argv[-1])
         #args = list(map(int, sys.argv[-1].strip().split(" ")))
         
         # ok need to run this on the cluster where i only have a task id...
         # the queickest way to hack this while still being compatible with the old crap 
-        # is using the maketasks function defined above...
+        # is using the maketasts function defined above...
         taskfilename = '.tasks'
         resprefix='.res'
         if sys.argv[-2] == 'chem':
