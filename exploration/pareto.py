@@ -5,7 +5,8 @@ import queue
 import heapq
 import numpy as np
 from eden.util import timeit
-from graphlearn3.lsgg import lsgg
+#from graphlearn.local_substitution_graph_grammar import LocalSubstitutionGraphGrammar as lsgg
+from graphlearn.cipcorevector import LsggCoreVec as lsgg
 from toolz.curried import compose, map, concat
 from exploration.pareto_funcs import _manage_int_or_float
 logger = logging.getLogger(__name__)
@@ -18,7 +19,10 @@ import eden.graph
 import itertools
 import multiprocessing
 
-import graphlearn3.lsgg_cip as glcip
+import graphlearn.lsgg_core_interface_pair as glcip
+
+import numpy as np
+from collections import defaultdict
 
 class hashvec(object):
 
@@ -78,7 +82,7 @@ class MYOPTIMIZER(object):
             multiobj_est=None,
             n_iter=19,
             keeptop= 20,
-            random_state=1,multiproc=True, target=None, removeworst=0):
+            random_state=1,multiproc=True, target_graph_vector=None, target=None, removeworst=0):
         """init."""
         self.grammar = grammar
         self.keeptop = keeptop
@@ -91,6 +95,7 @@ class MYOPTIMIZER(object):
         self.seen_graphs = {}
         self.queues  = [ list() for i in range(4)]
         self.prefilter_kick= removeworst
+        self.target_graph_vector = target_graph_vector
         if target:
             self.cheat= True
             self.cheater = cheater(target)
@@ -239,7 +244,7 @@ class MYOPTIMIZER(object):
         return costs
 
     def _get_neighbors(self, graph):
-        neighs = list(self.grammar.neighbors(graph))
+        neighs = list(self.grammar.neighbors(graph=graph, selectordata=[self.target_graph_vector]))
         for n in neighs:
             n.graph['history']= graph.graph['history'].copy()
         return neighs
@@ -262,13 +267,69 @@ class lsgg_size_hack(lsgg):
         cips from grammar)"""
         grlen = len(graph)
         for cip in orig_cips:
-            congruent_cips = self._congruent_cips(cip)
+            congruent_cips = self._get_congruent_cips(cip) # Got renamed. (was "self._congruent_cips()")
             cips_ = [nucip for nucip in congruent_cips 
-                        if (nucip.core_nodes_count + grlen - cip.core_nodes_count) <= self.genmaxsize]
+                        if (nucip.core_nodes_count + grlen - cip.core_nodes_count) <= self.genmaxsize] #genmaxsize doesnt exist and wont work...
             for cip_ in cips_:
-                graph_ = self._core_substitution(graph, cip, cip_)
+                graph_ = self._substitute_core(graph, cip, cip_) # Got renamed. (was "self.core_substitution()")
                 if graph_ is not None:
                     yield graph_
+
+
+def cosine_similarity(ciptuple, target_graph_vector=None):
+    """
+    Returns cosine similarity between a target vector
+    and the difference of the old and new cip-core-vectors.
+    """
+    current_cip = ciptuple[0].core_vec
+    concip = ciptuple[1].core_vec
+    difference_vec = concip - current_cip
+#    if current_cip.sum() == 0:
+#        logger.log(10, "Old Cip Vector with only 0s:")
+#        logger.log(10, so.graph.make_picture(ciptuple[0].graph))
+#    if concip.sum() == 0:
+#        logger.log(10, "Con Cip Vector with only 0s:")
+#        logger.log(10, so.graph.make_picture(ciptuple[1].graph))
+#    if not np.any(difference_vec):
+#        print("0!")
+    result = np.dot(target_graph_vector, difference_vec.T)
+    return result
+
+def new_cipselector(current_cips_congrus, target_graph_vector):
+    """
+    Option 1 for the new cipselector. For each cippair it calculates
+    target * (concip - current_cip) and returns the k best of them.
+
+    Args:
+      current_cips_congrus (list): [(current_cip, concip), (), ...]
+      target_graph_vector (matrix): Vector of the target graph
+    """
+    k = 100
+    scores = [cosine_similarity(x, target_graph_vector) for x in current_cips_congrus]
+    result = np.argsort(scores)[-k:]
+    return [current_cips_congrus[x] for x in result]
+
+
+def new_cipselector2(current_cips_congrus, target_graph_vector):
+    """
+    Option 2 for the new cipselector. Finds the best concip
+    for each current_cip and returns the k best of them.
+
+    Args:
+      current_cips_congrus (list): [(current_cip, concip), (), ...]
+      target_graph_vector (matrix): Vector of the target graph 
+    """
+    k = 10
+    target = target_graph_vector
+    d = defaultdict(lambda: (0, None)) # Elements are (similarity, concip)
+    for cip_pair in current_cips_congrus:
+        hash_pair = (cip_pair[0].core_hash, cip_pair[0].interface_hash)
+        similarity = np.dot(target, cip_pair[1].core_vec.T)
+        if not d[hash_pair][1] or similarity > d[hash_pair][0]:
+            d[hash_pair] = (similarity, cip_pair)
+    kbest = sorted(d.values(), reverse=True, key=lambda x: x[0])[:k]
+    return  [i[1] for i in kbest]
+
 
 class LocalLandmarksDistanceOptimizer(object):
     """LocalLandmarksDistanceOptimizer."""
@@ -290,7 +351,8 @@ class LocalLandmarksDistanceOptimizer(object):
             graph_size_limiter = lambda x: 999,
             squared_error = False,
             adapt_grammar_n_iter=None, cs2cs=[] , # context size 2 core size
-            multiproc=False, **kwargs):
+            multiproc=False,
+            decomposer=None, **kwargs):
         """init."""
         self.graph_size_limiter = graph_size_limiter
         self.adapt_grammar_n_iter = adapt_grammar_n_iter
@@ -299,11 +361,11 @@ class LocalLandmarksDistanceOptimizer(object):
         self.expand_max_frontier = expand_max_frontier
         self.max_size_frontier = max_size_frontier
         self.output_k_best = output_k_best
-        self.grammar = lsgg_size_hack(cip_root_all=False, half_step_distance=True)
-        self.grammar.set_core_size(core_sizes)
-        self.grammar.decomposition_args['thickness_list'] = [context_size]
+        self.grammar = lsgg_size_hack(core_vec_decomposer=decomposer, cipselector=new_cipselector, nodelevel_radius_and_thickness=False) #cip_root_all=False, half_step_distance=True)
+        self.grammar.radii = core_sizes #self.grammar.set_core_size(core_sizes)
+        self.grammar.thickness = context_size #self.grammar.decomposition_args['thickness_list'] = [context_size]
         #self.grammar.set_min_count(min_count) interfacecount 1 makes no sense
-        self.grammar.filter_args['min_cip_count'] = min_count
+        self.grammar.filter_min_cip = min_count #self.grammar.filter_args['min_cip_count'] = min_count
         self.optiopts = kwargs
         self.cs2cs = cs2cs
         
@@ -326,6 +388,7 @@ class LocalLandmarksDistanceOptimizer(object):
     def enhance_grammar(self, graphs):
 
         if self.cs2cs:
+            assert False, "Not adapted to new grammar."
             # train on context 1 +2  what is allowed
             self.grammar.decomposition_args['thickness_list'] = [2,4]
             cs = self.grammar.decomposition_args['radius_list']
@@ -370,7 +433,8 @@ class LocalLandmarksDistanceOptimizer(object):
             self,
             reference_graphs,
             desired_distances,
-            ranked_graphs, start_graph_list=False, target=None):
+            ranked_graphs, start_graph_list=False, 
+            target_graph_vector=None, target=None):
         """optimize.
         # providing target, prints real distances for all "passing" creations
         """
@@ -390,7 +454,9 @@ class LocalLandmarksDistanceOptimizer(object):
             multiobj_est=self.multiobj_est,
             n_iter=self.n_iter,
             keeptop=self.keeptop,
-            multiproc =self.usecpus, target=target,**self.optiopts)
+            multiproc =self.usecpus,
+            target_graph_vector=target_graph_vector,
+            target=target,**self.optiopts)
 
         if not start_graph_list:
             res = pgo.optimize(ranked_graphs)

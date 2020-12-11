@@ -1,5 +1,5 @@
 import collections
-from graphlearn3 import lsgg
+from graphlearn import lsgg
 import networkx as nx
 
 

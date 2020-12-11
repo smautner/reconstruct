@@ -13,6 +13,9 @@ import logging
 configure_logging(logging.getLogger(),verbosity=2)
 logger = logging.getLogger(__name__)
 
+from ego import real_vectorize as rv #####
+from ego.decomposition.paired_neighborhoods import decompose_neighborhood #####
+from graphlearn.cipcorevector import vertex_vec
 
 '''
 USAGE:
@@ -21,6 +24,7 @@ USAGE:
     python3 -c "import reconstruct as r; r.report()"   to see result
 '''
 
+#exit()
 
 def maketasks(params):
     # want a list
@@ -75,8 +79,8 @@ else:
 # call with reconstruct.py TASKID  REPEATID
 params_insta= {
     'keyorder' :  ["n_landmarks", "n_neighbors"],
-    'n_landmarks' : [10,15,20], # seems to help a little with larger problems, >3 recommended
-    'n_neighbors' :[50,75,100,125,200,400] # seems to not matter much 25 and 50 look the same, 15 and 75 also
+    'n_landmarks' : [10], # [10,15,20], # seems to help a little with larger problems, >3 recommended
+    'n_neighbors' : [100] # [50,75,100,125,200,400] # seems to not matter much 25 and 50 look the same, 15 and 75 also
     }
 
 
@@ -295,9 +299,13 @@ def reconstruct_and_evaluate(target_graph,
                                 desired_distances,
                                 ranked_graphs,
                                 **args):
-    optimizer = pareto.LocalLandmarksDistanceOptimizer(**args)
+    from scipy.sparse import csr_matrix
+    decomposer = decompose_neighborhood ######
+    optimizer = pareto.LocalLandmarksDistanceOptimizer(decomposer=decomposer, **args)
+    target_graph_vector = csr_matrix(vertex_vec(target_graph, decomposer).sum(axis=0)) #####
     # providing target, prints real distances for all "passing" creations
-    res = optimizer.optimize(landmark_graphs,desired_distances,ranked_graphs) #,target=target_graph)
+    res = optimizer.optimize(landmark_graphs, desired_distances, ranked_graphs,
+                             target_graph_vector=target_graph_vector) #,target=target_graph)
     return res
 
 
@@ -318,6 +326,7 @@ if __name__=="__main__":
         make_chem_task_file()
         exit()
     else:
+        #exit()
         #print(sys.argv[-1])
         #args = list(map(int, sys.argv[-1].strip().split(" ")))
         
@@ -357,6 +366,8 @@ if __name__=="__main__":
     if os.path.isfile(filename):
         print ("FILE EXISTS")
         exit()
+    elif not os.path.exists(resprefix):
+        os.makedirs(resprefix)
 
     im =  InstanceMaker(**im_params).fit(graphs, EXPERIMENT_REPEATS)
     res = im.get(run_id)
