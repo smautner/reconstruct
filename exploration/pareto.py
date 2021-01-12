@@ -22,6 +22,7 @@ import multiprocessing
 import graphlearn.lsgg_core_interface_pair as glcip
 
 import numpy as np
+from sklearn.preprocessing import normalize ###########
 from collections import defaultdict
 
 class hashvec(object):
@@ -281,18 +282,14 @@ def cosine_similarity(ciptuple, target_graph_vector=None):
     Returns cosine similarity between a target vector
     and the difference of the old and new cip-core-vectors.
     """
-    current_cip = ciptuple[0].core_vec
-    concip = ciptuple[1].core_vec
+    current_cip = normalize(ciptuple[0].core_vec, axis=1)
+    concip = normalize(ciptuple[1].core_vec, axis=1)
     difference_vec = concip - current_cip
-#    if current_cip.sum() == 0:
-#        logger.log(10, "Old Cip Vector with only 0s:")
-#        logger.log(10, so.graph.make_picture(ciptuple[0].graph))
-#    if concip.sum() == 0:
-#        logger.log(10, "Con Cip Vector with only 0s:")
-#        logger.log(10, so.graph.make_picture(ciptuple[1].graph))
-#    if not np.any(difference_vec):
-#        print("0!")
-    result = np.dot(target_graph_vector, difference_vec.T)
+    if current_cip.sum() == 0:
+        logger.log(10, f"CUR type: {type(current_cip)}, shape: {current_cip.shape}, shape[0]: {current_cip.shape[0]}")
+    if concip.sum() == 0:
+        logger.log(10, f"CON type: {type(concip)}, shape: {concip.shape}, shape[0]: {concip.shape[0]}")
+    result = np.dot(normalize(target_graph_vector, axis=1), difference_vec.T)
     return result
 
 def new_cipselector(current_cips_congrus, target_graph_vector):
@@ -304,7 +301,7 @@ def new_cipselector(current_cips_congrus, target_graph_vector):
       current_cips_congrus (list): [(current_cip, concip), (), ...]
       target_graph_vector (matrix): Vector of the target graph
     """
-    k = 100
+    k = 400
     scores = [cosine_similarity(x, target_graph_vector) for x in current_cips_congrus]
     result = np.argsort(scores)[-k:]
     return [current_cips_congrus[x] for x in result]
@@ -319,16 +316,16 @@ def new_cipselector2(current_cips_congrus, target_graph_vector):
       current_cips_congrus (list): [(current_cip, concip), (), ...]
       target_graph_vector (matrix): Vector of the target graph 
     """
-    k = 10
-    target = target_graph_vector
-    d = defaultdict(lambda: (0, None)) # Elements are (similarity, concip)
+    k = 100
+    kbests = []
+    d = defaultdict(lambda: []) # Elements are (similarity, concip)
     for cip_pair in current_cips_congrus:
-        hash_pair = (cip_pair[0].core_hash, cip_pair[0].interface_hash)
-        similarity = np.dot(target, cip_pair[1].core_vec.T)
-        if not d[hash_pair][1] or similarity > d[hash_pair][0]:
-            d[hash_pair] = (similarity, cip_pair)
-    kbest = sorted(d.values(), reverse=True, key=lambda x: x[0])[:k]
-    return  [i[1] for i in kbest]
+        hash_current = (cip_pair[0].core_hash, cip_pair[0].interface_hash)
+        similarity = np.dot(normalize(target_graph_vector, axis=1), normalize(cip_pair[1].core_vec, axis=1).T)
+        d[hash_current].append((similarity, cip_pair))
+    for l in d.values():
+        kbests.extend(sorted(l, reverse=True, key=lambda x: x[0])[:k])
+    return  [i[1] for i in kbests]
 
 
 class LocalLandmarksDistanceOptimizer(object):
@@ -338,7 +335,7 @@ class LocalLandmarksDistanceOptimizer(object):
             self,
             r=3,
             d=3,
-            core_sizes=[0,2,4],
+            core_sizes=[0,1,2],
             context_size=2,
             min_count=1,
             expand_max_n_neighbors=None,
@@ -354,6 +351,7 @@ class LocalLandmarksDistanceOptimizer(object):
             multiproc=False,
             decomposer=None, **kwargs):
         """init."""
+        print(core_sizes)
         self.graph_size_limiter = graph_size_limiter
         self.adapt_grammar_n_iter = adapt_grammar_n_iter
         self.expand_max_n_neighbors = expand_max_n_neighbors
@@ -361,7 +359,7 @@ class LocalLandmarksDistanceOptimizer(object):
         self.expand_max_frontier = expand_max_frontier
         self.max_size_frontier = max_size_frontier
         self.output_k_best = output_k_best
-        self.grammar = lsgg_size_hack(core_vec_decomposer=decomposer, cipselector=new_cipselector, nodelevel_radius_and_thickness=False) #cip_root_all=False, half_step_distance=True)
+        self.grammar = lsgg_size_hack(core_vec_decomposer=decomposer, cipselector=new_cipselector2, nodelevel_radius_and_thickness=True) #cip_root_all=False, half_step_distance=True)
         self.grammar.radii = core_sizes #self.grammar.set_core_size(core_sizes)
         self.grammar.thickness = context_size #self.grammar.decomposition_args['thickness_list'] = [context_size]
         #self.grammar.set_min_count(min_count) interfacecount 1 makes no sense

@@ -92,10 +92,10 @@ instancemakerparams = maketasks(params_insta)
 ##############################
 params_opt = {
     'keyorder' :  ["core_sizes","min_count","context_size","removeworst",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter"],
-    "core_sizes" : [[0,2,4]], # on exp graph
+    "core_sizes" : [[0,1,2]], # on exp graph ##### was [[0,2,4]]
     "removeworst":[0],
-    'min_count':[1],
-    "context_size":[2], # you want 2 or 4 ...
+    'min_count':[2],
+    "context_size":[1], # you want 2 or 4 ... ##### was [2]
     "n_iter":[20], # 5 just for ez problems
     "keeptop":[5], # 5+  15 pareto things
     'multiproc': [4],
