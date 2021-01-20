@@ -13,9 +13,9 @@ import logging
 configure_logging(logging.getLogger(),verbosity=2)
 logger = logging.getLogger(__name__)
 
-from ego import real_vectorize as rv #####
-from ego.decomposition.paired_neighborhoods import decompose_neighborhood #####
+from ego.decomposition.paired_neighborhoods import decompose_neighborhood
 from graphlearn.cipcorevector import vertex_vec
+from scipy.sparse import csr_matrix
 
 '''
 USAGE:
@@ -91,7 +91,7 @@ instancemakerparams = maketasks(params_insta)
 #  OPTIONS FOR SOLVER 
 ##############################
 params_opt = {
-    'keyorder' :  ["core_sizes","min_count","context_size","removeworst",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter"],
+    'keyorder' :  ["core_sizes","min_count","context_size","removeworst",'n_iter','multiproc',"add_grammar_rules","keeptop","squared_error","graph_size_limiter", "cipselector_option", "use_normalization"],
     "core_sizes" : [[0,1,2]], # on exp graph ##### was [[0,2,4]]
     "removeworst":[0],
     'min_count':[2],
@@ -101,7 +101,9 @@ params_opt = {
     'multiproc': [4],
     "add_grammar_rules":[False],
     "squared_error": [False], # False slightly better 590:572 
-    "graph_size_limiter":[ lambda x: x.max()+(int(x.std()) or 5) ]
+    "graph_size_limiter":[ lambda x: x.max()+(int(x.std()) or 5) ],
+    "cipselector_option": [1],
+    "use_normalization": [True]
 }
 
 if False:
@@ -299,13 +301,14 @@ def reconstruct_and_evaluate(target_graph,
                                 desired_distances,
                                 ranked_graphs,
                                 **args):
-    from scipy.sparse import csr_matrix
     decomposer = decompose_neighborhood ######
+    genmaxsize= np.average([g.number_of_nodes() for g in landmark_graphs]) * 1.3 ######### No idea if this form of genmaxsize works.
+    logger.log(10, f"genmaxsize: {genmaxsize}")
     optimizer = pareto.LocalLandmarksDistanceOptimizer(decomposer=decomposer, **args)
     target_graph_vector = csr_matrix(vertex_vec(target_graph, decomposer).sum(axis=0)) #####
     # providing target, prints real distances for all "passing" creations
     res = optimizer.optimize(landmark_graphs, desired_distances, ranked_graphs,
-                             target_graph_vector=target_graph_vector) #,target=target_graph)
+                             target_graph_vector=target_graph_vector, genmaxsize=genmaxsize) #,target=target_graph)
     return res
 
 

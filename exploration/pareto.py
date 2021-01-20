@@ -25,6 +25,11 @@ import numpy as np
 from sklearn.preprocessing import normalize ###########
 from collections import defaultdict
 
+from ego.decomposition.paired_neighborhoods import decompose_neighborhood
+from graphlearn.cipcorevector import vertex_vec
+from scipy.sparse import csr_matrix
+
+
 class hashvec(object):
 
     def __init__(self, vectorizer, multiproc = 1):
@@ -83,7 +88,7 @@ class MYOPTIMIZER(object):
             multiobj_est=None,
             n_iter=19,
             keeptop= 20,
-            random_state=1,multiproc=True, target_graph_vector=None, target=None, removeworst=0):
+            random_state=1,multiproc=True, target_graph_vector=None, target=None, removeworst=0, use_normalization=True, decomposer=None):
         """init."""
         self.grammar = grammar
         self.keeptop = keeptop
@@ -97,6 +102,8 @@ class MYOPTIMIZER(object):
         self.queues  = [ list() for i in range(4)]
         self.prefilter_kick= removeworst
         self.target_graph_vector = target_graph_vector
+        self.use_normalization = use_normalization
+        self.decomposer = decomposer
         if target:
             self.cheat= True
             self.cheater = cheater(target)
@@ -107,6 +114,7 @@ class MYOPTIMIZER(object):
         g = [graphs[e] for e in np.argmin(costs,axis=0)]
         #logger.debug([len(e)for e in g])
         logger.debug(so.graph.make_picture(g,edgelabel='label',size=10))
+        print([x.number_of_nodes() for x in g]) #####
         if min(costs[:,0]) == 0:
             #logger.debug(graphs[np.argmin(costs[:,0])].graph['history'])
             return True
@@ -245,7 +253,13 @@ class MYOPTIMIZER(object):
         return costs
 
     def _get_neighbors(self, graph):
-        neighs = list(self.grammar.neighbors(graph=graph, selectordata=[self.target_graph_vector]))
+        # if graph.number_of_nodes() > self.grammar.genmaxsize: #######
+        #     return [] ###############################################
+        current_graph_vector = csr_matrix(vertex_vec(graph, self.decomposer).sum(axis=0)) #####
+        neighs = list(self.grammar.neighbors(graph=graph, selectordata=[self.target_graph_vector,
+                                                                        current_graph_vector,
+                                                                        self.use_normalization,
+                                                                        self.grammar.genmaxsize]))
         for n in neighs:
             n.graph['history']= graph.graph['history'].copy()
         return neighs
@@ -270,29 +284,14 @@ class lsgg_size_hack(lsgg):
         for cip in orig_cips:
             congruent_cips = self._get_congruent_cips(cip) # Got renamed. (was "self._congruent_cips()")
             cips_ = [nucip for nucip in congruent_cips 
-                        if (nucip.core_nodes_count + grlen - cip.core_nodes_count) <= self.genmaxsize] #genmaxsize doesnt exist and wont work...
+                        if (nucip.core_nodes_count + grlen - cip.core_nodes_count) <= self.genmaxsize]
             for cip_ in cips_:
                 graph_ = self._substitute_core(graph, cip, cip_) # Got renamed. (was "self.core_substitution()")
                 if graph_ is not None:
                     yield graph_
 
 
-def cosine_similarity(ciptuple, target_graph_vector=None):
-    """
-    Returns cosine similarity between a target vector
-    and the difference of the old and new cip-core-vectors.
-    """
-    current_cip = normalize(ciptuple[0].core_vec, axis=1)
-    concip = normalize(ciptuple[1].core_vec, axis=1)
-    difference_vec = concip - current_cip
-    if current_cip.sum() == 0:
-        logger.log(10, f"CUR type: {type(current_cip)}, shape: {current_cip.shape}, shape[0]: {current_cip.shape[0]}")
-    if concip.sum() == 0:
-        logger.log(10, f"CON type: {type(concip)}, shape: {concip.shape}, shape[0]: {concip.shape[0]}")
-    result = np.dot(normalize(target_graph_vector, axis=1), difference_vec.T)
-    return result
-
-def new_cipselector(current_cips_congrus, target_graph_vector):
+def new_cipselector(current_cips_congrus, target_graph_vector, current_graph_vector, use_normalization, genmaxsize):
     """
     Option 1 for the new cipselector. For each cippair it calculates
     target * (concip - current_cip) and returns the k best of them.
@@ -300,28 +299,54 @@ def new_cipselector(current_cips_congrus, target_graph_vector):
     Args:
       current_cips_congrus (list): [(current_cip, concip), (), ...]
       target_graph_vector (matrix): Vector of the target graph
+      current_graph_vector (matrix): Vector of the current graph
+      genmaxsize (int): Integer value of average graphsize of landmarkgraphs * 1.3 (=+30%) # Possibly no longer needed
+      use_normalization (Bool): If True, all vectors will be normalized. 
     """
     k = 400
-    scores = [cosine_similarity(x, target_graph_vector) for x in current_cips_congrus]
+    if use_normalization:
+        target_graph_vector = normalize(target_graph_vector, axis=1)
+        nustuff = np.array([(current_graph_vector - normalize(curent_cip.core_vec, axis=1) + normalize(con_cip.core_vec, axis=1)).T
+                            for curent_cip, con_cip in current_cips_congrus])
+    else:
+        nustuff = np.array([(current_graph_vector - curent_cip.core_vec + con_cip.core_vec).T
+                            for curent_cip, con_cip in current_cips_congrus])
+    scores = np.dot(target_graph_vector, nustuff)
+#    scores = [cosine_similarity(x, target_graph_vector) for x in current_cips_congrus if x[1].graph.number_of_nodes() <= genmaxsize]
+#    scores = [cosine_similarity(x, target_graph_vector) for x in current_cips_congrus if len(x[1].core_nodes) <= genmaxsize]
     result = np.argsort(scores)[-k:]
     return [current_cips_congrus[x] for x in result]
 
 
-def new_cipselector2(current_cips_congrus, target_graph_vector):
+def new_cipselector2(current_cips_congrus, target_graph_vector, current_graph_vector, use_normalization, genmaxsize):
     """
     Option 2 for the new cipselector. Finds the best concip
     for each current_cip and returns the k best of them.
 
     Args:
       current_cips_congrus (list): [(current_cip, concip), (), ...]
-      target_graph_vector (matrix): Vector of the target graph 
+      target_graph_vector (matrix): Vector of the target graph
+      current_graph_vector (matrix): Vector of the current graph
+      genmaxsize (int): Integer value of average graphsize of landmarkgraphs * 1.3 (=+30%)
+      use_normalization (Bool): If True, all vectors will be normalized. 
     """
     k = 100
     kbests = []
     d = defaultdict(lambda: []) # Elements are (similarity, concip)
     for cip_pair in current_cips_congrus:
+#        if cip_pair[1].graph.number_of_nodes() > genmaxsize: # if len(cip_pair[1].core_nodes) > genmaxsize:
+#            logger.log(10, "AAA")
+#            continue
+##        else:
+##            logger.log(10, f"gsize: {cip_pair[1].graph.number_of_nodes()}, corenodes: {len(cip_pair[1].core_nodes)} genmaxsize: {genmaxsize}")
+        current_cip, con_cip = cip_pair[0].core_vec, cip_pair[1].core_vec
+        if use_normalization:
+            target_graph_vector = normalize(target_graph_vector, axis=1)
+            current_graph_vector = normalize(current_graph_vector, axis=1)
+            current_cip = normalize(current_cip, axis=1)
+            con_cip = normalize(con_cip, axis=1)
         hash_current = (cip_pair[0].core_hash, cip_pair[0].interface_hash)
-        similarity = np.dot(normalize(target_graph_vector, axis=1), normalize(cip_pair[1].core_vec, axis=1).T)
+        similarity = np.dot(target_graph_vector, (current_graph_vector + con_cip - current_cip).T) ### ?
         d[hash_current].append((similarity, cip_pair))
     for l in d.values():
         kbests.extend(sorted(l, reverse=True, key=lambda x: x[0])[:k])
@@ -349,9 +374,16 @@ class LocalLandmarksDistanceOptimizer(object):
             squared_error = False,
             adapt_grammar_n_iter=None, cs2cs=[] , # context size 2 core size
             multiproc=False,
-            decomposer=None, **kwargs):
+            decomposer=None,
+            cipselector_option=None, **kwargs):
         """init."""
         print(core_sizes)
+        if cipselector_option == 1:
+            cipselector = new_cipselector
+        elif cipselector_option == 2:
+            cipselector = new_cipselector2
+        else:
+            raise ValueError("Invalid Cipselector Option")
         self.graph_size_limiter = graph_size_limiter
         self.adapt_grammar_n_iter = adapt_grammar_n_iter
         self.expand_max_n_neighbors = expand_max_n_neighbors
@@ -359,7 +391,8 @@ class LocalLandmarksDistanceOptimizer(object):
         self.expand_max_frontier = expand_max_frontier
         self.max_size_frontier = max_size_frontier
         self.output_k_best = output_k_best
-        self.grammar = lsgg_size_hack(core_vec_decomposer=decomposer, cipselector=new_cipselector2, nodelevel_radius_and_thickness=True) #cip_root_all=False, half_step_distance=True)
+        self.decomposer = decomposer
+        self.grammar = lsgg_size_hack(core_vec_decomposer=decomposer, cipselector=cipselector, nodelevel_radius_and_thickness=True) #cip_root_all=False, half_step_distance=True)
         self.grammar.radii = core_sizes #self.grammar.set_core_size(core_sizes)
         self.grammar.thickness = context_size #self.grammar.decomposition_args['thickness_list'] = [context_size]
         #self.grammar.set_min_count(min_count) interfacecount 1 makes no sense
@@ -432,7 +465,7 @@ class LocalLandmarksDistanceOptimizer(object):
             reference_graphs,
             desired_distances,
             ranked_graphs, start_graph_list=False, 
-            target_graph_vector=None, target=None):
+            target_graph_vector=None, genmaxsize=None, target=None):
         """optimize.
         # providing target, prints real distances for all "passing" creations
         """
@@ -444,7 +477,8 @@ class LocalLandmarksDistanceOptimizer(object):
                               reference_graphs,
                               ranked_graphs)
 
-        self.grammar.genmaxsize = self.calc_graph_max_size(reference_graphs)
+        # self.grammar.genmaxsize = self.calc_graph_max_size(reference_graphs) # Lets comment this out for now since we use a different method.
+        self.grammar.genmaxsize = genmaxsize # Try this one for now
         # setup and run optimizer
 
         pgo = MYOPTIMIZER(
@@ -454,7 +488,7 @@ class LocalLandmarksDistanceOptimizer(object):
             keeptop=self.keeptop,
             multiproc =self.usecpus,
             target_graph_vector=target_graph_vector,
-            target=target,**self.optiopts)
+            target=target, decomposer=self.decomposer,**self.optiopts)
 
         if not start_graph_list:
             res = pgo.optimize(ranked_graphs)
