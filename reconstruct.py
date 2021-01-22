@@ -102,7 +102,7 @@ params_opt = {
     "add_grammar_rules":[False],
     "squared_error": [False], # False slightly better 590:572 
     "graph_size_limiter":[ lambda x: x.max()+(int(x.std()) or 5) ],
-    "cipselector_option": [1],
+    "cipselector_option": [2],
     "use_normalization": [True]
 }
 
@@ -268,8 +268,9 @@ def getvalue(p, nores, nosucc, folder): # nosucc and nores are just collecting s
 def report(folder = '.res', tasklist=None):
 
     problems = id_to_options(tasklist= tasklist)
+    print(len(problems))
 
-    dat= defaultdict(dict)
+    dat= defaultdict(lambda: defaultdict(list))
     nores = []
     nosucc =[]
     for p in range(0,len(problems),EXPERIMENT_REPEATS):
@@ -278,14 +279,15 @@ def report(folder = '.res', tasklist=None):
         gr = grtostr(a)
         op = optitostr(c)
         y,z = im.split(" ")
-        dat[y][z]= getvalue(p, nores, nosucc, folder)
+        dat[y][z] += [getvalue(p, nores, nosucc, folder)]
 
     #mod = lambda x : str(x).replace("_",' ')
+    lsuccess = [int(a) for c in dat.values() for d in c.values() for a,b,_ in d]
     print ("nores",nores)
     print ('nosucc',nosucc)
-    print ("sumsuccess:", sum([int(a) for c in dat.values() for a,b,_ in c.values()]))
-    print ("maxrnd:", max([int(b) for c in dat.values() for a,b,_ in c.values()]))
-    
+    print ("sumsuccess:", sum(lsuccess), lsuccess)
+#    print ("maxrnd:", max([int(b) for c in dat.values() for a,b,_ in c.values()]))
+    print("maxrnd:", max([int(b) for c in dat.values() for d in c.values() for a,b,_ in d]))
     
     print (pandas.DataFrame(dat).to_string()) 
     #print (pandas.DataFrame(dat).to_latex()) 

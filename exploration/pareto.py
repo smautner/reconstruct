@@ -294,7 +294,7 @@ class lsgg_size_hack(lsgg):
 def new_cipselector(current_cips_congrus, target_graph_vector, current_graph_vector, use_normalization, genmaxsize):
     """
     Option 1 for the new cipselector. For each cippair it calculates
-    target * (concip - current_cip) and returns the k best of them.
+    target * (current_graph - current_cip + con_cip) and returns the k best of them.
 
     Args:
       current_cips_congrus (list): [(current_cip, concip), (), ...]
