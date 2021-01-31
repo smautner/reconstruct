@@ -31,7 +31,6 @@ def maketasks(params):
     # want a list
     combolist =[[]]
     for key in params['keyorder']:
-        print(key, params[key])
         combolist = [  e+[value] for value in params[key]  for e in combolist ]
     return  [ {k:v for k,v in zip(params['keyorder'],configuration)} for configuration in combolist ]
 
