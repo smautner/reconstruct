@@ -19,7 +19,7 @@ def rule_rand_graphs(input_set, numgr =100, iter= 1):
     grammar.fit(input_set)
 
     cleaner = myop()
-    list(cleaner.duplicate_rm(input_set)) # makes sure that we never ouitput the input. dup_rm saves all hashes
+    list(cleaner.duplicate_rm(input_set)) # makes sure that we never output the input. dup_rm saves all hashes
 
     for i in range(iter):
         input_set = [g for start in input_set for g  in grammar.neighbors(start)]
