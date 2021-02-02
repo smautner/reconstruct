@@ -40,7 +40,7 @@ def maketasks(params):
 ##  OPTIONS FOR GRAPHS
 ##########################################
 
-EXPERIMENT_REPEATS = 50
+EXPERIMENT_REPEATS = 100
 # 1. param dict
 
 params_graphs = {
@@ -93,7 +93,7 @@ instancemakerparams = maketasks(params_insta)
 ##############################
 params_opt = {
     'keyorder' :  ["core_sizes","min_count","context_size","removeworst",'n_iter','multiproc',"add_grammar_rules","keepgraphs",
-                   "squared_error","graph_size_limiter", "cipselector_option", "cipselector_k", "use_normalization", "pareto_option"],
+                   "squared_error", "cipselector_option", "cipselector_k", "use_normalization", "pareto_option"],
     "core_sizes" : [[0,1,2]], # on exp graph ##### was [[0,2,4]]
     "removeworst":[0],
     'min_count':[2],
@@ -103,7 +103,7 @@ params_opt = {
     'multiproc': [4],
     "add_grammar_rules":[False],
     "squared_error": [False], # False slightly better 590:572 
-    "graph_size_limiter":[ lambda x: x.max()+(int(x.std()) or 5) ],
+##    "graph_size_limiter":[ lambda x: x.max()+(int(x.std()) or 5) ], # If you put this one in make sure to include in keyorder
     "cipselector_option": [2],
     "cipselector_k": [10], # NOTE: Ensure k for option 2 is small <20. Recommended 400/10 for option 1/2 
     "use_normalization": [True],
@@ -115,21 +115,24 @@ params_opt = {
 # Pareto Option "pareto_only": (Instead of using the 3*5 best graphs it takes double the graphs from the pareto front.
 # Pareto Option: "all": (Takes EVERY graph from the pareto front)
 parser = argparse.ArgumentParser()
-parser.add_argument('--core_sizes', nargs='+', type=list, default=[[0,1,2]],
+parser.add_argument('--core_sizes', nargs='+', type=int, default=[0,1,2],
                     help='Core sizes/Radii')
-parser.add_argument('--context_size', nargs='+', type=int, default=[1],
+parser.add_argument('--context_size', nargs=1, type=int, default=[1],
                     help='Context sizes/Thickness')
 parser.add_argument('--cipselector_option', nargs=1, type=int, default=[2],
                     choices=[1, 2],
                     help='1: Take k best from all, 2: Take k best from each current cip')
 parser.add_argument('--cipselector_k', nargs=1, type=int, default=[10],
                     help='k for Cipselector')
-parser.add_argument('--pareto_option', nargs='+', type=str, default=['default'],
+parser.add_argument('--pareto_option', nargs=1, type=str, default=['default'],
                     choices=['default', 'random', 'greedy', 'pareto_only', 'all'],
                     help='Pareto option for optimization')
 parser.add_argument('--use_normalization', action='store_true',
                     help='If used, normalization will be applied for cipselection')
+parser.add_argument('--taskid', nargs=1, type=int, default=[0])
 parsed_args = vars(parser.parse_known_args()[0])
+taskid = parsed_args.pop('taskid')[0]
+parsed_args['core_sizes'] = [parsed_args['core_sizes']]
 parsed_args['use_normalization'] = [parsed_args['use_normalization']]
 params_opt.update(parsed_args)
 
@@ -373,7 +376,7 @@ if __name__=="__main__":
             resprefix='.chemres'
             tasklist=list(range(13)) # chem stuff
 
-        arg = int(sys.argv[3])-1 # was [-1]
+        arg = int(taskid)-1 # was [-1]
         args=id_to_options(tasklist=tasklist)[arg]
 
     #OPTIONS FOR GRAPHS
