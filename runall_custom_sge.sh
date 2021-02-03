@@ -5,5 +5,5 @@
 #$ -R y
 #$ -o logs/$JOB_ID.o_$TASK_ID
 #$ -e logs/$JOB_ID.e_$TASK_ID
-python reconstruct.py $SGE_TASK_ID
+python reconstruct.py --taskid $SGE_TASK_ID
 echo $JOB_ID > lastjobid.tmp

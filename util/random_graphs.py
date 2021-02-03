@@ -131,7 +131,7 @@ def make_graph_strict(nodes, nlabels, elabels, maxdegree=3, dist = 'real', allow
     # DO STH WITH WITH LABELZ
     return add_labels_preset( make_random_graph( (nodes,nodes),(edges,edges), maxdegree, allow_cycles=allow_cycles) , getlab(node_stats),getlab(edge_stats) ) 
 
-import graphlearn3.lsgg_cip as glcip
+import graphlearn.lsgg_core_interface_pair as glcip
 from structout import gprint
 
 
@@ -142,7 +142,7 @@ def make_graphs_static(number_of_graphs=100, size_of_graphs=5, node_labels=5, ed
     failcount = 0
     while len(l)< number_of_graphs:
         g= make_graph_strict(size_of_graphs, node_labels, edge_labels, maxdeg, dist=labeldistribution, allow_cycles=allow_cycles)
-        harsch = glcip.graph_hash(edeng._edge_to_vertex_transform(g.copy()),node_name_label=lambda id,node:hash(node['label']))
+        harsch = glcip.graph_hash(edeng._edge_to_vertex_transform(g.copy()),get_node_label=lambda id,node:hash(node['label']))
         if harsch not in seen:
             seen[harsch] = 1
             l.append(g)
