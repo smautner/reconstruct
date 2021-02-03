@@ -16,7 +16,7 @@ for CIPK in 100 200 400 800; do
 	sleep 10
 	done
 	sed 's/SGE_TASK_ID.*/SGE_TASK_ID/' runall_custom_sge.sh > _tmp.sh_ && mv -- _tmp.sh_ runall_custom_sge.sh
-	echo "$JOBID" >> results
+	echo "$JOBID" >> results.txt
 	echo "$STRING" >> results.txt
 	python reconstruct.py report >> results.txt
 	mkdir -p results/cipsel1_$CIPK
@@ -37,7 +37,7 @@ for CIPK in 1 5 10 15 20; do
 	sleep 10
 	done
 	sed 's/SGE_TASK_ID.*/SGE_TASK_ID/' runall_custom_sge.sh > _tmp.sh_ && mv -- _tmp.sh_ runall_custom_sge.sh
-	echo "$JOBID" >> results
+	echo "$JOBID" >> results.txt
 	echo "$STRING" >> results.txt
 	python reconstruct.py report >> results.txt
 	mkdir -p results/cipsel2_$CIPK
@@ -58,7 +58,7 @@ for NORM in ' --use_nomralization' ''; do
 	sleep 10
 	done
 	sed 's/SGE_TASK_ID.*/SGE_TASK_ID/' runall_custom_sge.sh > _tmp.sh_ && mv -- _tmp.sh_ runall_custom_sge.sh
-	echo "$JOBID" >> results
+	echo "$JOBID" >> results.txt
 	echo "$STRING" >> results.txt
 	python reconstruct.py report >> results.txt
 	mkdir -p results/norm$NORM
@@ -79,7 +79,7 @@ for PARETO in 'default' 'random' 'greedy' 'pareto_only' 'all'; do
 	sleep 10
 	done
 	sed 's/SGE_TASK_ID.*/SGE_TASK_ID/' runall_custom_sge.sh > _tmp.sh_ && mv -- _tmp.sh_ runall_custom_sge.sh
-	echo "$JOBID" >> results
+	echo "$JOBID" >> results.txt
 	echo "$STRING" >> results.txt
 	python reconstruct.py report >> results.txt
 	mkdir -p results/pareto$PARETO
@@ -100,7 +100,7 @@ for CORESIZES in '0 1 2' '2' '0 2 4'; do
 	sleep 10
 	done
 	sed 's/SGE_TASK_ID.*/SGE_TASK_ID/' runall_custom_sge.sh > _tmp.sh_ && mv -- _tmp.sh_ runall_custom_sge.sh
-	echo "$JOBID" >> results
+	echo "$JOBID" >> results.txt
 	echo "$STRING" >> results.txt
 	python reconstruct.py report >> results.txt
 	mkdir -p results/coresize$CORESIZES
@@ -121,7 +121,7 @@ for CONTEXTSIZE in 0.5 1 2; do
 	sleep 10
 	done
 	sed 's/SGE_TASK_ID.*/SGE_TASK_ID/' runall_custom_sge.sh > _tmp.sh_ && mv -- _tmp.sh_ runall_custom_sge.sh
-	echo "$JOBID" >> results
+	echo "$JOBID" >> results.txt
 	echo "$STRING" >> results.txt
 	python reconstruct.py report >> results.txt
 	mkdir -p results/contextsize$CONTEXTSIZE

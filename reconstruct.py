@@ -173,7 +173,7 @@ def maketsk(args):
     rrg_iter = args.pop("rrg_iter")
     graphs = rg.make_graphs_static(**args)
     if rrg_iter > 0:
-        graphs = rrg.rule_rand_graphs(graphs, numgr=550,iter=rrg_iter)[0]
+        graphs = rrg.rule_rand_graphs(graphs, numgr=500+EXPERIMENT_REPEATS,iter=rrg_iter)[0]
     return graphs
 def make_task_file():
     import extensions.lsggscramble  as scram

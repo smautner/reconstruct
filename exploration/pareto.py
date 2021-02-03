@@ -166,7 +166,7 @@ class MYOPTIMIZER(object):
         in_count = len(graphs)
         keepgraphs = self.keepgraphs
                     
-        if in_count <= 50:
+        if in_count <= self.keepgraphs:
             logger.debug('cost_filter: keep all %d graphs' % in_count)
             return graphs
         elif self.pareto_option == "random":
@@ -174,6 +174,7 @@ class MYOPTIMIZER(object):
             return random.sample(graphs, keepgraphs)
         elif self.prefilter_kick!=0:
             # DELETE THE 25% worst in each category
+            assert False
             costs_ranked = np.argsort(costs,axis=0)[-int(len(graphs)*self.prefilter_kick):]
             trash = np.unique(costs_ranked)
             keep =  [i for i in range(len(graphs)) if i not in trash]
@@ -473,7 +474,7 @@ class LocalLandmarksDistanceOptimizer(object):
         if self.use_normalization:
             target_graph_vector = normalize(target_graph_vector, axis=1)
             predicted_vectors = np.array([(current_graph_vector - normalize(curent_cip.core_vec, axis=1) + normalize(con_cip.core_vec, axis=1)).T
-                                for curent_cip, con_cip in current_cips_congrus])
+                                for curent_cip, con_cip in current_cips_congrus]) # np.array([normalize((current_graph_vector - curent_cip.core_vec + con_cip.core_vec).T
         else:
             predicted_vectors = np.array([(current_graph_vector - curent_cip.core_vec + con_cip.core_vec).T
                                 for curent_cip, con_cip in current_cips_congrus])
