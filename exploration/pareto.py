@@ -169,9 +169,11 @@ class MYOPTIMIZER(object):
         if in_count <= self.keepgraphs:
             logger.debug('cost_filter: keep all %d graphs' % in_count)
             return graphs
-        elif self.pareto_option == "random":
+        
+        if self.pareto_option == "random":
             # Return randomly selected graphs without any application of pareto.
             return random.sample(graphs, keepgraphs)
+        '''
         elif self.prefilter_kick!=0:
             # DELETE THE 25% worst in each category
             assert False
@@ -180,32 +182,38 @@ class MYOPTIMIZER(object):
             keep =  [i for i in range(len(graphs)) if i not in trash]
             graphs = [graphs[i] for i in keep]
             costs = costs[keep]
+        '''
+        
+        if self.pareto_option == 'greedy': # use distance to target directly!!!
+            costs_ranked = np.argsort(costs,axis=0)[:keepgraphs,[0]]
+            return [graphs[i] for i in costs_ranked]
+            
 
-
-        if self.pareto_option == "pareto_only" or self.pareto_option == "all":
-            res, want = [], []
-        else:
-
-            # need to keep x best in each category
-            if self.pareto_option == "greedy":
-                # Take best graphs from the distance estimator and nowhere else.
-                costs_ranked = np.argsort(costs,axis=0)[:keepgraphs,[0]] ### This one NEEDS to be double checked..
-            else: # = self.pareto_option == "default"
-                costs_ranked = np.argsort(costs,axis=0)[:int(keepgraphs/6),[0,1,3]]
+        paretoselectedgraphs = paretof._pareto_set(graphs, costs) # anpassen
+        random.shuffle(paretoselectedgraphs)
+        
+        if self.pareto_option == "pareto_only":
+            return paretoselectedgraphs[:keepgraphs]
+        
+        if self.pareto_option == "all":
+            return paretoselectedgraphs
+        
+        if self.pareto_option == "default":
+           pass
+           '''
+            costs_ranked = np.argsort(costs,axis=0)[:int(keepgraphs/6),[0,1,3]]
             want , counts = np.unique(costs_ranked,return_counts=True) 
 
             res = [graphs[idd] for idd,count in zip( want,counts) if count > 0 ] 
-            for g,score in zip(res,want):
-                g.graph['history'].append(costs[score])
-
-
+        
         # OK SO THE TRICK IS TO ALSO GET SOME FROM THE PARETO FRONT
         if not self.pareto_option == "greedy":
             dontwant = [i for i in range(len(graphs)) if i not in want]
             restgraphs = [graphs[i] for i in dontwant]
             restcosts = costs[dontwant][:,[0,1,2]]
-            paretoselectedgraphs = paretof._pareto_set(restgraphs, restcosts)
+            
             random.shuffle(paretoselectedgraphs)
+            
             if self.pareto_option == "all":
                 # Returns ALL graphs from the pareto front
                 res = paretoselectedgraphs
@@ -214,7 +222,9 @@ class MYOPTIMIZER(object):
                 res = paretoselectedgraphs[:keepgraphs]
             else: # = self.pareto_option == "default"
                 res+=paretoselectedgraphs[:int(keepgraphs/2)]
-
+            '''
+                
+                
 
         # DEBUG TO SHOW THE REAL DISTANCE
         if self.cheat:
