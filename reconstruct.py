@@ -115,9 +115,7 @@ params_opt = {
 # Pareto Option "pareto_only": (Instead of using the 3*5 best graphs it takes double the graphs from the pareto front.
 # Pareto Option: "all": (Takes EVERY graph from the pareto front)
 parser = argparse.ArgumentParser()
-parser.add_argument('--core_sizes', nargs='+', type=int, default=[0,1,2],
-                    help='Core sizes/Radii')
-parser.add_argument('--context_size', nargs=1, type=int, default=[1],
+parser.add_argument('--context_size', nargs=1, type=float, default=[1],
                     help='Context sizes/Thickness')
 parser.add_argument('--cipselector_option', nargs=1, type=int, default=[2],
                     choices=[1, 2],
@@ -127,15 +125,13 @@ parser.add_argument('--cipselector_k', nargs=1, type=int, default=[10],
 parser.add_argument('--pareto_option', nargs=1, type=str, default=['default'],
                     choices=['default', 'random', 'greedy', 'pareto_only', 'all'],
                     help='Pareto option for optimization')
-parser.add_argument('--use_normalization', action='store_true',
+parser.add_argument('-n', '--use_normalization', action='store_true',
                     help='If used, normalization will be applied for cipselection')
 parser.add_argument('--taskid', nargs=1, type=int, default=[0])
 parsed_args = vars(parser.parse_known_args()[0])
 taskid = parsed_args.pop('taskid')[0]
-parsed_args['core_sizes'] = [parsed_args['core_sizes']]
 parsed_args['use_normalization'] = [parsed_args['use_normalization']]
 params_opt.update(parsed_args)
-
 
 if False:
     #%core sizes vs insterface size might tell a story, artificial: thick2 core 0 ,,
@@ -278,13 +274,15 @@ def getvalue(p, nores, nosucc, folder): # nosucc and nores are just collecting s
     allsteps=[-1]
     success = 0
     times = []
+    average_productions = []
     for task in range(EXPERIMENT_REPEATS):
         taskname = "%d" % (p+task)
         fname = folder+"/"+taskname
         if os.path.isfile(fname):
             completed +=1
-            res, steps, time = jloadfile(fname)
+            res, steps, time, avg_productions = jloadfile(fname)
             times.append(time)
+            average_productions.append(avg_productions)
             success += res
             if not res:   # FAIL
                 nosucc.append(taskname)
@@ -294,7 +292,8 @@ def getvalue(p, nores, nosucc, folder): # nosucc and nores are just collecting s
             nores.append(taskname)
     allsteps = np.array(allsteps)
     times = np.array(times)
-    return success,  allsteps.max(), times.mean()
+    average_productions = np.array(average_productions)
+    return success,  allsteps.max(), times.mean(), average_productions.mean()
 
 def report(folder = '.res', tasklist=None):
 
@@ -313,12 +312,15 @@ def report(folder = '.res', tasklist=None):
         dat[y][z] += [getvalue(p, nores, nosucc, folder)]
 
     #mod = lambda x : str(x).replace("_",' ')
-    lsuccess = [int(a) for c in dat.values() for d in c.values() for a,b,_ in d]
+    lsuccess = [int(succ) for data in dat.values() for v in data.values() for succ,steps,times,avg in v]
+    avg_productions = np.array([int(avg) for data in dat.values() for v in data.values() for succ,steps,times,avg in v])
+    rnd = [int(steps) for data in dat.values() for v in data.values() for succ,steps,times,avg in v]
     print ("nores",nores)
     print ('nosucc',nosucc)
     print ("sumsuccess:", sum(lsuccess), lsuccess)
+    print ("Average productions:", avg_productions.mean(), avg_productions)
 #    print ("maxrnd:", max([int(b) for c in dat.values() for a,b,_ in c.values()]))
-    print("maxrnd:", max([int(b) for c in dat.values() for d in c.values() for a,b,_ in d]))
+    print("maxrnd:", max(rnd))
     
     print (pandas.DataFrame(dat).to_string())
     # Terminal exec(cat all the logs|awk "average productions per graph")

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 import structout as so
 from exploration import pareto_funcs as paretof, cost_estimator as costs
 from extensions import lsggscramble as lsggs
-
+from sklearn.metrics.pairwise import euclidean_distances
 
 import eden.graph
 import itertools
@@ -21,14 +21,21 @@ import multiprocessing
 
 import graphlearn.lsgg_core_interface_pair as glcip
 
-from operator import itemgetter
-from sklearn.preprocessing import normalize ###########
+from sklearn.preprocessing import normalize
 from collections import defaultdict
 
-from ego.decomposition.paired_neighborhoods import decompose_neighborhood
 from graphlearn.cipcorevector import vertex_vec
 from scipy.sparse import csr_matrix
 
+def calc_average(l):
+    """
+    Small function to mitigate possibility
+    of an empty list of average productions.
+    """
+    if len(l) == 0:
+        return 0
+    return sum(l)/len(l)
+    
 
 class hashvec(object):
 
@@ -124,6 +131,7 @@ class MYOPTIMIZER(object):
     def optimize(self, graphs):
         """Optimize iteratively."""
         starttime= time.time()
+        averages = []
         assert (self.grammar.is_fit())
         assert (self.multiobj_est.is_fit())
 
@@ -135,27 +143,30 @@ class MYOPTIMIZER(object):
         # main cycle
         for i in range(self.n_iter):
             logger.debug("++++++++  START OPTIMIZATION STEP %d +++++++" % i)
-            graphs, status= self.optimize_step(graphs)
+            graphs, status, avg_productions= self.optimize_step(graphs)
+            if not avg_productions == None: # In case avg == 0 it should still be added
+                averages.append(avg_productions)
             if status:
-                return True,i,time.time()-starttime
+                return True,i,time.time()-starttime, calc_average(averages)
             if not graphs:
                 logger.debug("ran out of graphs")
-                return False,i, time.time()-starttime
+                return False,i, time.time()-starttime, calc_average(averages)
 
         costs = self.get_costs(graphs)
-        return self.checkstatus(costs, graphs),i, time.time()-starttime
+        return self.checkstatus(costs, graphs),i, time.time()-starttime, calc_average(averages)
 
     def optimize_step(self, graphs):
         # filter, expand, chk duplicates
         costs = self.get_costs(graphs)
         status = self.checkstatus(costs, graphs)
-        if status: return [],True  
+        if status: return [],True,None
         graphs = self.filter_by_cost(costs, graphs)
         num_graphs = len(graphs)
         graphs = self._expand_neighbors(graphs)
-        logger.log(10, f"Average productions per graph: {len(graphs)/num_graphs}")###
+        avg_productions = len(graphs)/num_graphs
+        logger.log(10, f"Average productions per graph: {avg_productions}")###
         graphs = self.duplicate_rm(graphs)
-        return graphs, status
+        return graphs, status, avg_productions
 
    
 
@@ -167,83 +178,71 @@ class MYOPTIMIZER(object):
         keepgraphs = self.keepgraphs
                     
         if in_count <= self.keepgraphs:
+            # Only few graphs remaining so just return all of them.
             logger.debug('cost_filter: keep all %d graphs' % in_count)
             return graphs
         
-        if self.pareto_option == "random":
+        elif self.pareto_option == "random":
             # Return randomly selected graphs without any application of pareto.
-            return random.sample(graphs, keepgraphs)
-        '''
-        elif self.prefilter_kick!=0:
-            # DELETE THE 25% worst in each category
-            assert False
-            costs_ranked = np.argsort(costs,axis=0)[-int(len(graphs)*self.prefilter_kick):]
-            trash = np.unique(costs_ranked)
-            keep =  [i for i in range(len(graphs)) if i not in trash]
-            graphs = [graphs[i] for i in keep]
-            costs = costs[keep]
-        '''
-        
-        if self.pareto_option == 'greedy': # use distance to target directly!!!
-            costs_ranked = np.argsort(costs,axis=0)[:keepgraphs,[0]]
-            return [graphs[i] for i in costs_ranked]
-            
+            res =  random.sample(graphs, keepgraphs)
 
-        paretoselectedgraphs = paretof._pareto_set(graphs, costs) # anpassen
-        random.shuffle(paretoselectedgraphs)
+##        elif self.prefilter_kick!=0:
+##            # DELETE THE 25% worst in each category
+##            assert False
+##            costs_ranked = np.argsort(costs,axis=0)[-int(len(graphs)*self.prefilter_kick):]
+##            trash = np.unique(costs_ranked)
+##            keep =  [i for i in range(len(graphs)) if i not in trash]
+##            graphs = [graphs[i] for i in keep]
+##            costs = costs[keep]
         
-        if self.pareto_option == "pareto_only":
-            return paretoselectedgraphs[:keepgraphs]
-        
-        if self.pareto_option == "all":
-            return paretoselectedgraphs
-        
-        if self.pareto_option == "default":
-           pass
-           '''
-            costs_ranked = np.argsort(costs,axis=0)[:int(keepgraphs/6),[0,1,3]]
-            want , counts = np.unique(costs_ranked,return_counts=True) 
-
-            res = [graphs[idd] for idd,count in zip( want,counts) if count > 0 ] 
-        
-        # OK SO THE TRICK IS TO ALSO GET SOME FROM THE PARETO FRONT
-        if not self.pareto_option == "greedy":
-            dontwant = [i for i in range(len(graphs)) if i not in want]
-            restgraphs = [graphs[i] for i in dontwant]
-            restcosts = costs[dontwant][:,[0,1,2]]
-            
+        elif self.pareto_option == 'greedy':
+            # Return graphs with the lowest euclidean distance to the target vector
+            distances = []
+            for g in graphs:
+                distances.append(euclidean_distances(self.target_graph_vector, vertex_vec(g, self.decomposer).sum(axis=0))[0][0])
+            ranked_distances = np.argsort(distances)[:keepgraphs]
+            res =  [graphs[i] for i in ranked_distances]
+        elif self.pareto_option == "default":
+            # Take best graphs from estimators and pareto front
+           costs_ranked = np.argsort(costs,axis=0)[:int(keepgraphs/6),[0,1,3]]
+           want , counts = np.unique(costs_ranked,return_counts=True)
+           res = [graphs[idd] for idd,count in zip( want,counts) if count > 0 ]
+           dontwant = [i for i in range(len(graphs)) if i not in want]
+           restgraphs = [graphs[i] for i in dontwant]
+           restcosts = costs[dontwant][:,[0,1,2]]
+           paretoselectedgraphs = paretof._pareto_set(restgraphs, restcosts)
+           random.shuffle(paretoselectedgraphs)
+           res += paretoselectedgraphs[:int(keepgraphs/2)]
+        else:
+            paretoselectedgraphs = paretof._pareto_set(graphs, costs)
             random.shuffle(paretoselectedgraphs)
-            
-            if self.pareto_option == "all":
-                # Returns ALL graphs from the pareto front
-                res = paretoselectedgraphs
-            elif self.pareto_option == "pareto_only":
-                # Only return graphs from the pareto front.
+
+            if self.pareto_option == "pareto_only":
+                # Return only graphs from the pareto front
                 res = paretoselectedgraphs[:keepgraphs]
-            else: # = self.pareto_option == "default"
-                res+=paretoselectedgraphs[:int(keepgraphs/2)]
-            '''
-                
-                
+            
+            elif self.pareto_option == "all":
+                # Return ALL graphs from the pareto front
+                res = paretoselectedgraphs
 
-        # DEBUG TO SHOW THE REAL DISTANCE
-        if self.cheat:
-            print ("real distances for all kept graphs, axis 1 are the estimators that selected them")
-            matrix = np.hstack(
-                        [self.cheater.cheat_calc([graphs[z] for z in costs_ranked[:,i]]).reshape(-1,1)
-                        for i in range(costs_ranked.shape[1])]
-                )
-            print(matrix)
-            print (costs[costs_ranked[:,1],0])
-            print (costs[costs_ranked[:,0],0])
+##        # DEBUG TO SHOW THE REAL DISTANCE
+##        if self.cheat:
+##            print ("real distances for all kept graphs, axis 1 are the estimators that selected them")
+##            matrix = np.hstack(
+##                        [self.cheater.cheat_calc([graphs[z] for z in costs_ranked[:,i]]).reshape(-1,1)
+##                        for i in range(costs_ranked.shape[1])]
+##                )
+##            print(matrix)
+##            print (costs[costs_ranked[:,1],0])
+##            print (costs[costs_ranked[:,0],0])
+##
+##            stuff = np.where(matrix == 0.0)
+##            if len(stuff[0])>0:
+##                from util import util
+##                util.dumpfile(graphs[costs_ranked[stuff][0]],"gr")
+##                print ("graph dumped")
+        logger.log(10, f"cost_filter: got {in_count} graphs, reduced to {len(res)} (%.2fs)"%(time.time()-timenow))
 
-            stuff = np.where(matrix == 0.0)
-            if len(stuff[0])>0:
-                from util import util
-                util.dumpfile(graphs[costs_ranked[stuff][0]],"gr")
-                print ("graph dumped")
-
-        logger.debug('cost_filter: got %d graphs, reduced to %d (%.2fs)'%(in_count,len(res),time.time()-timenow))
         return res
 
    
@@ -287,8 +286,7 @@ class MYOPTIMIZER(object):
 
     def _get_neighbors(self, graph):
         current_graph_vector = csr_matrix(vertex_vec(graph, self.decomposer).sum(axis=0))
-        neighs = list(self.grammar.neighbors(graph=graph, selectordata=[self.target_graph_vector,
-                                                                        current_graph_vector]))
+        neighs = list(self.grammar.neighbors(graph=graph, selectordata=[current_graph_vector]))
         for n in neighs:
             n.graph['history']= graph.graph['history'].copy()
         return neighs
@@ -320,7 +318,16 @@ class lsgg_size_hack(lsgg): # No longer used
                     yield graph_
 
 
-
+def score_productions(target_csr, current_csr, productions, use_normalization):
+    if use_normalization:
+        target_csr = normalize(target_csr, axis=1)
+        predicted_vectors = [csr_matrix(normalize(current_csr - curent_cip.core_vec + con_cip.core_vec, axis=1)).T
+                            for curent_cip, con_cip in productions]
+    else:
+        predicted_vectors = [csr_matrix(current_csr - curent_cip.core_vec + con_cip.core_vec).T
+                            for curent_cip, con_cip in productions]
+    scores = np.dot(target_csr, predicted_vectors)
+    return scores
 
 
 class LocalLandmarksDistanceOptimizer(object):
@@ -443,6 +450,7 @@ class LocalLandmarksDistanceOptimizer(object):
         """optimize.
         # providing target, prints real distances for all "passing" creations
         """
+        self.target_graph_vector = target_graph_vector
         # self.grammar.fit(graphscramble.scramble(ranked_graphs))
         self.enhance_grammar(ranked_graphs)  # WAS REF BUT REF MIGHT BE SMALL
 
@@ -470,7 +478,21 @@ class LocalLandmarksDistanceOptimizer(object):
             res = pgo.optimize(start_graph_list)
         return res
 
-    def new_cipselector(self, current_cips_congrus, target_graph_vector, current_graph_vector):
+
+#    def score_productions(self, target_csr, current_csr, productions, use_normalization):
+#        logger.log(10, f"USE_NORM: {use_normalization}")
+#        if use_normalization:
+#            target_csr = normalize(target_csr, axis=1)
+#            predicted_vectors = [csr_matrix(normalize(current_csr - curent_cip.core_vec + con_cip.core_vec, axis=1)).T
+#                                for curent_cip, con_cip in productions]
+#        else:
+#            predicted_vectors = [csr_matrix(current_csr - curent_cip.core_vec + con_cip.core_vec).T
+#                                for curent_cip, con_cip in productions]
+#        scores = np.dot(target_csr, predicted_vectors)
+#        return scores
+
+
+    def new_cipselector(self, current_cips_congrus, current_graph_vector):
         """
         Option 1 for the new cipselector. For each cippair it calculates
         target * (current_graph - current_cip + con_cip) and returns the k best of them.
@@ -481,19 +503,13 @@ class LocalLandmarksDistanceOptimizer(object):
           current_graph_vector (matrix): Vector of the current graph 
         """
         k = self.cipselector_k
-        if self.use_normalization:
-            target_graph_vector = normalize(target_graph_vector, axis=1)
-            predicted_vectors = np.array([(current_graph_vector - normalize(curent_cip.core_vec, axis=1) + normalize(con_cip.core_vec, axis=1)).T
-                                for curent_cip, con_cip in current_cips_congrus]) # np.array([normalize((current_graph_vector - curent_cip.core_vec + con_cip.core_vec).T
-        else:
-            predicted_vectors = np.array([(current_graph_vector - curent_cip.core_vec + con_cip.core_vec).T
-                                for curent_cip, con_cip in current_cips_congrus])
-        scores = np.dot(target_graph_vector, predicted_vectors)
+        target_csr = self.target_graph_vector
+        scores = score_productions(target_csr, current_graph_vector, current_cips_congrus, self.use_normalization)
         result = np.argsort(scores)[-k:]
         return [current_cips_congrus[x] for x in result]
+        
 
-
-    def new_cipselector2(self, current_cips_congrus, target_graph_vector, current_graph_vector):
+    def new_cipselector2(self, current_cips_congrus, current_graph_vector):
         """
         Option 2 for the new cipselector. Finds the best concip
         for each current_cip and returns the k best of them.
@@ -504,21 +520,38 @@ class LocalLandmarksDistanceOptimizer(object):
           current_graph_vector (matrix): Vector of the current graph
         """
         k = self.cipselector_k
-        kbests = []
-        d = defaultdict(list) # Elements are (similarity, concip)
-        for cip_pair in current_cips_congrus:
-            current_cip, con_cip = cip_pair[0].core_vec, cip_pair[1].core_vec
-            if self.use_normalization:
-                target_graph_vector = normalize(target_graph_vector, axis=1)
-                current_graph_vector = normalize(current_graph_vector, axis=1)
-                current_cip = normalize(current_cip, axis=1)
-                con_cip = normalize(con_cip, axis=1)
-            hash_current = (cip_pair[0].core_hash, cip_pair[0].interface_hash)
-            similarity = np.dot(target_graph_vector, (current_graph_vector + con_cip - current_cip).T) ### ?
-            d[hash_current].append((similarity, cip_pair))
-        for l in d.values():
-            kbests.extend(sorted(l, reverse=True, key=itemgetter(0))[:k])
-        return  [i[1] for i in kbests]
+        target_csr = self.target_graph_vector
+        result = []
+        scores = score_productions(target_csr, current_graph_vector, current_cips_congrus, self.use_normalization)
+        d = defaultdict(list) # Elements are (similarity, cippair)
+        for s,p in zip(scores, current_cips_congrus):
+            d[p[0].interface_hash].append((s, p))
+        for value in d.values():
+            tmp = sorted(value, reverse=True, key=lambda x: x[0])[:k]
+            result += [i[1] for i in tmp]
+        return result
+
+
+########
+####        scores = score_productions(...)
+##        for i in range(0, len(current_cips_congrus)):
+##            cip_pair = current_cips_congrus[i]
+##            score = scores[i]
+##            current_cip, con_cip = cip_pair[0].core_vec, cip_pair[1].core_vec
+########
+####        for cip_pair in current_cips_congrus:
+####            current_cip, con_cip = cip_pair[0].core_vec, cip_pair[1].core_vec
+####            hash_current = (cip_pair[0].core_hash, cip_pair[0].interface_hash)
+##            hash_current = (cip_pair[0].interface_hash)
+####            if self.use_normalization:
+####                similarity = np.dot(normalize(target_graph_vector, axis=1), normalize(current_graph_vector + con_cip - current_cip, axis=1).T)
+####            else:
+####                similarity = np.dot(target_graph_vector, (current_graph_vector + con_cip - current_cip).T)
+##            d[hash_current].append((score, cip_pair))
+####            d[hash_current].append((similarity, cip_pair))
+##        for l in d.values():
+##            kbests.extend(sorted(l, reverse=True, key=lambda x: x[0])[:k])
+##        return  [i[1] for i in kbests]
 
     def calc_graph_max_size(self,graphs): # Currently not in use.
         graphlengths = np.array([len(g)+g.number_of_edges() for g in graphs])
