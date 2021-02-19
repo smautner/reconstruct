@@ -103,7 +103,7 @@ params_opt = {
     'multiproc': [4],
     "add_grammar_rules":[False],
     "squared_error": [False], # False slightly better 590:572 
-##    "graph_size_limiter":[ lambda x: x.max()+(int(x.std()) or 5) ], # If you put this one in make sure to include in keyorder
+    "graph_size_limiter":[ lambda x: x.max()+(int(x.std()) or 5) ], # If you put this one in make sure to include in keyorder
     "cipselector_option": [2],
     "cipselector_k": [10], # NOTE: Ensure k for option 2 is small <20. Recommended 400/10 for option 1/2 
     "use_normalization": [True],
