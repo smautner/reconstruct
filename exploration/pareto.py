@@ -145,11 +145,7 @@ class MYOPTIMIZER(object):
             multiobj_est=None,
             n_iter=19,
             keepgraphs= 30,
-<<<<<<< HEAD
             random_state=1,multiproc=True, target_graph_vector=None, target=None, removeworst=0, pareto_option=1, use_normalization=1, decomposer=None, cipselector_k=0):
-=======
-            random_state=1,multiproc=True, target_graph_vector=None, target=None, removeworst=0, pareto_option=1, use_normalization=True, decomposer=None, cipselector_k=0):
->>>>>>> 61cf4710da499c8bf7aefd3f7ec8b30dcdaedd35
         """init."""
         self.grammar = grammar
         self.keepgraphs = keepgraphs
