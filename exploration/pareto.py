@@ -145,7 +145,11 @@ class MYOPTIMIZER(object):
             multiobj_est=None,
             n_iter=19,
             keepgraphs= 30,
+<<<<<<< HEAD
             random_state=1,multiproc=True, target_graph_vector=None, target=None, removeworst=0, pareto_option=1, use_normalization=1, decomposer=None, cipselector_k=0):
+=======
+            random_state=1,multiproc=True, target_graph_vector=None, target=None, removeworst=0, pareto_option=1, use_normalization=True, decomposer=None, cipselector_k=0):
+>>>>>>> 61cf4710da499c8bf7aefd3f7ec8b30dcdaedd35
         """init."""
         self.grammar = grammar
         self.keepgraphs = keepgraphs
@@ -359,7 +363,11 @@ class MYOPTIMIZER(object):
 
 
 class lsgg_size_hack(lsgg): # Back in use!
+<<<<<<< HEAD
     def _neighbors_given_cips(self, graph, orig_cips):
+=======
+    def _neighbors_given_cips(self, graph, orig_cips): # Dont think this is used.
+>>>>>>> 61cf4710da499c8bf7aefd3f7ec8b30dcdaedd35
         """iterator over graphs generted by substituting all orig_cips in graph (with
         cips from grammar)"""
         grlen = len(graph)
@@ -531,7 +539,11 @@ class LocalLandmarksDistanceOptimizer(object):
         return res
 
 
+<<<<<<< HEAD
     def calc_graph_max_size(self,graphs): # Currently not in use.
+=======
+    def calc_graph_max_size(self,graphs):
+>>>>>>> 61cf4710da499c8bf7aefd3f7ec8b30dcdaedd35
         graphlengths = np.array([len(g)+g.number_of_edges() for g in graphs])
 
         val  = self.graph_size_limiter(graphlengths)
