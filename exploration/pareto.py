@@ -27,6 +27,56 @@ from collections import defaultdict
 from graphlearn.cipcorevector import vertex_vec
 from scipy.sparse import csr_matrix
 
+
+def score_productions(target_csr, current_csr, productions, use_normalization):
+    if use_normalization:
+        target_csr = normalize(target_csr, axis=1)
+        predicted_vectors = [csr_matrix(normalize(current_csr - curent_cip.core_vec + con_cip.core_vec, axis=1)).T
+                            for curent_cip, con_cip in productions] # if con_cip <= self.genmaxsize
+    else:
+        predicted_vectors = [csr_matrix(current_csr - curent_cip.core_vec + con_cip.core_vec).T
+                            for curent_cip, con_cip in productions]
+    scores = np.dot(target_csr, predicted_vectors)
+    return scores
+
+
+def new_cipselector(current_cips_congrus, target_graph_vector, current_graph_vector, use_normalization, cipselector_k):
+    """
+    Option 1 for the new cipselector. For each cippair it calculates
+    target * (current_graph - current_cip + con_cip) and returns the k best of them.
+
+    Args:
+      current_cips_congrus (list): [(current_cip, concip), (), ...]
+      target_graph_vector (matrix): Vector of the target graph
+      current_graph_vector (matrix): Vector of the current graph 
+    """
+    target_csr = target_graph_vector
+    scores = score_productions(target_csr, current_graph_vector, current_cips_congrus, use_normalization)
+    result = np.argsort(scores)[-cipselector_k:]
+    return [current_cips_congrus[x] for x in result]
+    
+
+def new_cipselector2(current_cips_congrus, target_graph_vector, current_graph_vector, use_normalization, cipselector_k):
+    """
+    Option 2 for the new cipselector. Finds the best concip
+    for each current_cip and returns the k best of them.
+
+    Args:
+      current_cips_congrus (list): [(current_cip, concip), (), ...]
+      target_graph_vector (matrix): Vector of the target graph
+      current_graph_vector (matrix): Vector of the current graph
+    """
+    target_csr = target_graph_vector
+    result = []
+    scores = score_productions(target_csr, current_graph_vector, current_cips_congrus, use_normalization)
+    d = defaultdict(list) # Elements are (similarity, cippair)
+    for s,p in zip(scores, current_cips_congrus):
+        d[p[0].interface_hash].append((s, p))
+    for value in d.values():
+        tmp = sorted(value, reverse=True, key=lambda x: x[0])[:cipselector_k]
+        result += [i[1] for i in tmp]
+    return result
+
 def calc_average(l):
     """
     Small function to mitigate possibility
@@ -95,7 +145,7 @@ class MYOPTIMIZER(object):
             multiobj_est=None,
             n_iter=19,
             keepgraphs= 30,
-            random_state=1,multiproc=True, target_graph_vector=None, target=None, removeworst=0, pareto_option=1, decomposer=None):
+            random_state=1,multiproc=True, target_graph_vector=None, target=None, removeworst=0, pareto_option=1, use_normalization=1, decomposer=None, cipselector_k=0):
         """init."""
         self.grammar = grammar
         self.keepgraphs = keepgraphs
@@ -109,6 +159,8 @@ class MYOPTIMIZER(object):
         self.queues  = [ list() for i in range(4)]
         self.prefilter_kick= removeworst
         self.target_graph_vector = target_graph_vector
+        self.cipselector_k = cipselector_k
+        self.use_normalization= use_normalization
         self.pareto_option = pareto_option
         self.decomposer = decomposer
         if target:
@@ -164,7 +216,7 @@ class MYOPTIMIZER(object):
         num_graphs = len(graphs)
         graphs = self._expand_neighbors(graphs)
         avg_productions = len(graphs)/num_graphs
-        logger.log(10, f"Average productions per graph: {avg_productions}")###
+        logger.log(10, f"Average productions per graph: {avg_productions}")
         graphs = self.duplicate_rm(graphs)
         return graphs, status, avg_productions
 
@@ -286,7 +338,10 @@ class MYOPTIMIZER(object):
 
     def _get_neighbors(self, graph):
         current_graph_vector = csr_matrix(vertex_vec(graph, self.decomposer).sum(axis=0))
-        neighs = list(self.grammar.neighbors(graph=graph, selectordata=[current_graph_vector]))
+        neighs = list(self.grammar.neighbors(graph=graph, selectordata=[self.target_graph_vector,
+                                                                        current_graph_vector,
+                                                                        self.use_normalization,
+                                                                        self.cipselector_k]))
         for n in neighs:
             n.graph['history']= graph.graph['history'].copy()
         return neighs
@@ -303,7 +358,7 @@ class MYOPTIMIZER(object):
             return list(concat(map(self._get_neighbors,graphs)))
 
 
-class lsgg_size_hack(lsgg): # No longer used
+class lsgg_size_hack(lsgg): # Back in use!
     def _neighbors_given_cips(self, graph, orig_cips):
         """iterator over graphs generted by substituting all orig_cips in graph (with
         cips from grammar)"""
@@ -317,17 +372,18 @@ class lsgg_size_hack(lsgg): # No longer used
                 if graph_ is not None:
                     yield graph_
 
-
-def score_productions(target_csr, current_csr, productions, use_normalization):
-    if use_normalization:
-        target_csr = normalize(target_csr, axis=1)
-        predicted_vectors = [csr_matrix(normalize(current_csr - curent_cip.core_vec + con_cip.core_vec, axis=1)).T
-                            for curent_cip, con_cip in productions]
-    else:
-        predicted_vectors = [csr_matrix(current_csr - curent_cip.core_vec + con_cip.core_vec).T
-                            for curent_cip, con_cip in productions]
-    scores = np.dot(target_csr, predicted_vectors)
-    return scores
+    def neighbors(self, graph, selectordata, filter = lambda x:True):
+        """iterator over all neighbors of graph (that are conceiveable by the grammar)
+        OVERWRITES the neighbors function of the cipcorevector LSGG"""
+        grlen = len(graph)
+        current_cips = self._get_cips(graph,filter)
+        current_cips_congrus = [(current_cip,concip) for current_cip in current_cips 
+                for concip in self._get_congruent_cips(current_cip) if len(concip.core_nodes) + grlen - len(current_cip.core_nodes) <= self.genmaxsize]
+        filtered_current_other = self.cipselector(current_cips_congrus,*selectordata)
+        for current_cip, congru in filtered_current_other:
+            graph_ = self._substitute_core(graph, current_cip, congru)
+            if graph_ is not None:
+                yield graph_
 
 
 class LocalLandmarksDistanceOptimizer(object):
@@ -347,24 +403,20 @@ class LocalLandmarksDistanceOptimizer(object):
             keepgraphs=30,
             output_k_best=None,
             add_grammar_rules = False,
-##            graph_size_limiter = lambda x: 999,
+            graph_size_limiter = lambda x: 999,
             squared_error = False,
             adapt_grammar_n_iter=None, cs2cs=[] , # context size 2 core size
             multiproc=False,
             decomposer=None,
-            cipselector_option=None,
-            cipselector_k=None,
-            use_normalization=None, **kwargs):
+            cipselector_option=None, **kwargs):
         """init."""
         if cipselector_option == 1:
-            cipselector = self.new_cipselector
+            cipselector = new_cipselector
         elif cipselector_option == 2:
-            cipselector = self.new_cipselector2
+            cipselector = new_cipselector2
         else:
             raise ValueError("Invalid Cipselector Option")
-        self.cipselector_k = cipselector_k
-        self.use_normalization = use_normalization
-##        self.graph_size_limiter = graph_size_limiter
+        self.graph_size_limiter = graph_size_limiter
         self.adapt_grammar_n_iter = adapt_grammar_n_iter
         self.expand_max_n_neighbors = expand_max_n_neighbors
         self.n_iter = n_iter
@@ -372,8 +424,8 @@ class LocalLandmarksDistanceOptimizer(object):
         self.max_size_frontier = max_size_frontier
         self.output_k_best = output_k_best
         self.decomposer = decomposer
-        #self.grammar = lsgg_size_hack(core_vec_decomposer=decomposer, cipselector=cipselector, nodelevel_radius_and_thickness=True) #cip_root_all=False, half_step_distance=True)
-        self.grammar = lsgg(core_vec_decomposer=decomposer, cipselector=cipselector, nodelevel_radius_and_thickness=True) #cip_root_all=False, half_step_distance=True)
+        self.grammar = lsgg_size_hack(core_vec_decomposer=decomposer, cipselector=cipselector, nodelevel_radius_and_thickness=True) #cip_root_all=False, half_step_distance=True)
+##        self.grammar = lsgg(core_vec_decomposer=decomposer, cipselector=cipselector, nodelevel_radius_and_thickness=True) #cip_root_all=False, half_step_distance=True)
         self.grammar.radii = core_sizes #self.grammar.set_core_size(core_sizes)
         self.grammar.thickness = context_size #self.grammar.decomposition_args['thickness_list'] = [context_size]
         #self.grammar.set_min_count(min_count) interfacecount 1 makes no sense
@@ -459,7 +511,7 @@ class LocalLandmarksDistanceOptimizer(object):
                               reference_graphs,
                               ranked_graphs)
 
-        # self.grammar.genmaxsize = self.calc_graph_max_size(reference_graphs) # Lets comment this out for now since we use a different method.
+        self.grammar.genmaxsize = self.calc_graph_max_size(reference_graphs)
         # setup and run optimizer
 
         pgo = MYOPTIMIZER(
@@ -479,80 +531,6 @@ class LocalLandmarksDistanceOptimizer(object):
         return res
 
 
-#    def score_productions(self, target_csr, current_csr, productions, use_normalization):
-#        logger.log(10, f"USE_NORM: {use_normalization}")
-#        if use_normalization:
-#            target_csr = normalize(target_csr, axis=1)
-#            predicted_vectors = [csr_matrix(normalize(current_csr - curent_cip.core_vec + con_cip.core_vec, axis=1)).T
-#                                for curent_cip, con_cip in productions]
-#        else:
-#            predicted_vectors = [csr_matrix(current_csr - curent_cip.core_vec + con_cip.core_vec).T
-#                                for curent_cip, con_cip in productions]
-#        scores = np.dot(target_csr, predicted_vectors)
-#        return scores
-
-
-    def new_cipselector(self, current_cips_congrus, current_graph_vector):
-        """
-        Option 1 for the new cipselector. For each cippair it calculates
-        target * (current_graph - current_cip + con_cip) and returns the k best of them.
-
-        Args:
-          current_cips_congrus (list): [(current_cip, concip), (), ...]
-          target_graph_vector (matrix): Vector of the target graph
-          current_graph_vector (matrix): Vector of the current graph 
-        """
-        k = self.cipselector_k
-        target_csr = self.target_graph_vector
-        scores = score_productions(target_csr, current_graph_vector, current_cips_congrus, self.use_normalization)
-        result = np.argsort(scores)[-k:]
-        return [current_cips_congrus[x] for x in result]
-        
-
-    def new_cipselector2(self, current_cips_congrus, current_graph_vector):
-        """
-        Option 2 for the new cipselector. Finds the best concip
-        for each current_cip and returns the k best of them.
-
-        Args:
-          current_cips_congrus (list): [(current_cip, concip), (), ...]
-          target_graph_vector (matrix): Vector of the target graph
-          current_graph_vector (matrix): Vector of the current graph
-        """
-        k = self.cipselector_k
-        target_csr = self.target_graph_vector
-        result = []
-        scores = score_productions(target_csr, current_graph_vector, current_cips_congrus, self.use_normalization)
-        d = defaultdict(list) # Elements are (similarity, cippair)
-        for s,p in zip(scores, current_cips_congrus):
-            d[p[0].interface_hash].append((s, p))
-        for value in d.values():
-            tmp = sorted(value, reverse=True, key=lambda x: x[0])[:k]
-            result += [i[1] for i in tmp]
-        return result
-
-
-########
-####        scores = score_productions(...)
-##        for i in range(0, len(current_cips_congrus)):
-##            cip_pair = current_cips_congrus[i]
-##            score = scores[i]
-##            current_cip, con_cip = cip_pair[0].core_vec, cip_pair[1].core_vec
-########
-####        for cip_pair in current_cips_congrus:
-####            current_cip, con_cip = cip_pair[0].core_vec, cip_pair[1].core_vec
-####            hash_current = (cip_pair[0].core_hash, cip_pair[0].interface_hash)
-##            hash_current = (cip_pair[0].interface_hash)
-####            if self.use_normalization:
-####                similarity = np.dot(normalize(target_graph_vector, axis=1), normalize(current_graph_vector + con_cip - current_cip, axis=1).T)
-####            else:
-####                similarity = np.dot(target_graph_vector, (current_graph_vector + con_cip - current_cip).T)
-##            d[hash_current].append((score, cip_pair))
-####            d[hash_current].append((similarity, cip_pair))
-##        for l in d.values():
-##            kbests.extend(sorted(l, reverse=True, key=lambda x: x[0])[:k])
-##        return  [i[1] for i in kbests]
-
     def calc_graph_max_size(self,graphs): # Currently not in use.
         graphlengths = np.array([len(g)+g.number_of_edges() for g in graphs])
 
@@ -562,4 +540,5 @@ class LocalLandmarksDistanceOptimizer(object):
         logger.debug(graphlengths)
         return val
         
+
 

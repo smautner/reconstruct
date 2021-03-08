@@ -23,6 +23,10 @@ USAGE:
     python3 reconstruct.py  to generate problem instances
     fish runall.sh  to run with parallel
     python3 -c "import reconstruct as r; r.report()"   to see result
+
+NOTE:
+- When using chemsets, set EXPERIMENT_REPEATS to 50, for artificial graphs to 100
+- When using chemsets, set the default pareto_option to default, since it seems to be better
 '''
 
 #exit()
@@ -40,7 +44,7 @@ def maketasks(params):
 ##  OPTIONS FOR GRAPHS
 ##########################################
 
-EXPERIMENT_REPEATS = 100
+EXPERIMENT_REPEATS = 50 #### CHANGE THIS BACK TO 100! 50 only for chemsets
 # 1. param dict
 
 params_graphs = {
@@ -93,45 +97,61 @@ instancemakerparams = maketasks(params_insta)
 ##############################
 params_opt = {
     'keyorder' :  ["core_sizes","min_count","context_size","removeworst",'n_iter','multiproc',"add_grammar_rules","keepgraphs",
-                   "squared_error", "cipselector_option", "cipselector_k", "use_normalization", "pareto_option"],
+                   "squared_error", "graph_size_limiter", "cipselector_option", "cipselector_k", "use_normalization", "pareto_option"],
     "core_sizes" : [[0,1,2]], # on exp graph ##### was [[0,2,4]]
     "removeworst":[0],
     'min_count':[2],
-    "context_size":[1], # you want 2 or 4 ... ##### was [2]
+    "context_size":[2], # you want 2 or 4 ... ##### was [2]
     "n_iter":[20], # 5 just for ez problems
     "keepgraphs":[30], # Ensure this is a multiple of 6 to not cause weird rounding errors.
     'multiproc': [4],
     "add_grammar_rules":[False],
     "squared_error": [False], # False slightly better 590:572 
-##    "graph_size_limiter":[ lambda x: x.max()+(int(x.std()) or 5) ], # If you put this one in make sure to include in keyorder
-    "cipselector_option": [2],
-    "cipselector_k": [10], # NOTE: Ensure k for option 2 is small <20. Recommended 400/10 for option 1/2 
-    "use_normalization": [True],
-    "pareto_option": ["default"]
+    "graph_size_limiter":[ lambda x: x.max()+(int(x.std()) or 5) ], # [ lambda x: 100]
+    "cipselector_option": None,
+    "cipselector_k": None, # NOTE: Ensure k for option 2 is small <20. 
+    "use_normalization": None, # 1 for normalization, 0 for no normalization
+    "pareto_option": None
 }
 # Pareto Option "default": (3*5 best graphs for each category + 15 pareto front)
 # Pareto Option "random":  (No pareto front and no 3*5 best graphs. Just take 30 random graphs total)
-# Pareto Option "greedy":  (Instead of using the pareto front it doubles the amount of best graphs kept)
+# Pareto Option "greedy":  (Instead of using the pareto front, take graphs with the lowest direct distance to the target)
 # Pareto Option "pareto_only": (Instead of using the 3*5 best graphs it takes double the graphs from the pareto front.
 # Pareto Option: "all": (Takes EVERY graph from the pareto front)
 parser = argparse.ArgumentParser()
-parser.add_argument('--context_size', nargs=1, type=float, default=[1],
+parser.add_argument('--core_sizes', nargs='*', type=int, default=[0,1,2], 
+                    help='Core sizes/Radii')
+parser.add_argument('--context_size', nargs=1, type=float, default=[2],
                     help='Context sizes/Thickness')
-parser.add_argument('--cipselector_option', nargs=1, type=int, default=[2],
+parser.add_argument('--cipselector_option', nargs=1, type=int, default=[1],
                     choices=[1, 2],
                     help='1: Take k best from all, 2: Take k best from each current cip')
-parser.add_argument('--cipselector_k', nargs=1, type=int, default=[10],
+parser.add_argument('--cipselector_k', nargs=1, type=int, default=[100],
                     help='k for Cipselector')
 parser.add_argument('--pareto_option', nargs=1, type=str, default=['default'],
                     choices=['default', 'random', 'greedy', 'pareto_only', 'all'],
                     help='Pareto option for optimization')
-parser.add_argument('-n', '--use_normalization', action='store_true',
-                    help='If used, normalization will be applied for cipselection')
+parser.add_argument('--use_normalization', nargs=1, type=int, default=[1], choices=[1,0],
+                    help='If 1, normalization will be applied for cipselection')
+parser.add_argument('--min_count', nargs=1, type=int, default=[2], 
+                    help='Also called min_cip')
+parser.add_argument('--graph_size_limiter', nargs=1, type=int, default=[0], choices=[1,0],
+                    help='If 0, graph size limiter is only used with a graphs >100')
 parser.add_argument('--taskid', nargs=1, type=int, default=[0])
+parser.add_argument('--resprefix', nargs=1, type=str, default=['.res'],
+                    help='Output folder')
+parser.add_argument('-c', '--chem', action='store_true', 
+                    help='If used, chemtasks will be executed, not required for reportchem.')
 parsed_args = vars(parser.parse_known_args()[0])
 taskid = parsed_args.pop('taskid')[0]
-parsed_args['use_normalization'] = [parsed_args['use_normalization']]
+use_chem = parsed_args.pop('chem')
+resprefix = parsed_args.pop('resprefix')[0]
+use_graph_size_limiter = parsed_args.pop('graph_size_limiter')[0]
+if not use_graph_size_limiter:
+    params_opt['graph_size_limiter'] = [lambda x: 100]
+parsed_args['core_sizes'] = [parsed_args['core_sizes']]
 params_opt.update(parsed_args)
+
 
 if False:
     #%core sizes vs insterface size might tell a story, artificial: thick2 core 0 ,,
@@ -353,11 +373,11 @@ if __name__=="__main__":
         make_task_file()
         exit()
     elif sys.argv[1]=="report":
-        report('.res',tasklist)
+        report(resprefix,tasklist)
         exit()
     elif sys.argv[1]=="reportchem":
         tasklist = get_chem_filenames()
-        report('.chemres',tasklist)
+        report(resprefix,tasklist)
         exit()
     elif sys.argv[1]=="maketaskschem":
         print("writing task file...")
@@ -372,10 +392,9 @@ if __name__=="__main__":
         # the queickest way to hack this while still being compatible with the old crap 
         # is using the maketasks function defined above...
         taskfilename = '.tasks'
-        resprefix='.res'
-        if sys.argv[2] == 'chem': # was [-2]
+        if use_chem:
+            print("TEST")
             taskfilename = '.chemtasks'
-            resprefix='.chemres'
             tasklist=list(range(13)) # chem stuff
 
         arg = int(taskid)-1 # was [-1]
