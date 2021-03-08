@@ -359,11 +359,7 @@ class MYOPTIMIZER(object):
 
 
 class lsgg_size_hack(lsgg): # Back in use!
-<<<<<<< HEAD
     def _neighbors_given_cips(self, graph, orig_cips):
-=======
-    def _neighbors_given_cips(self, graph, orig_cips): # Dont think this is used.
->>>>>>> 61cf4710da499c8bf7aefd3f7ec8b30dcdaedd35
         """iterator over graphs generted by substituting all orig_cips in graph (with
         cips from grammar)"""
         grlen = len(graph)
