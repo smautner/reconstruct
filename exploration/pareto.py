@@ -350,12 +350,13 @@ class MYOPTIMIZER(object):
         timenow = time.time()
         if self.multiproc>1:
             with multiprocessing.Pool(self.multiproc) as p:
+                res = list(concat(p.map(self._get_neighbors,graphs)))
                 logger.debug("graph generation: %.2fs" %  (time.time()-timenow))
-                return list(concat(p.map(self._get_neighbors,graphs)))
+                return res
         else:
-
+            res = list(concat(map(self._get_neighbors,graphs)))
             logger.debug("graph generation: %.2fs" %  (time.time()-timenow))
-            return list(concat(map(self._get_neighbors,graphs)))
+            return res
 
 
 class lsgg_size_hack(lsgg): # Back in use!
@@ -531,13 +532,8 @@ class LocalLandmarksDistanceOptimizer(object):
         return res
 
 
-<<<<<<< HEAD
-    def calc_graph_max_size(self,graphs): # Currently not in use.
-=======
     def calc_graph_max_size(self,graphs):
->>>>>>> 61cf4710da499c8bf7aefd3f7ec8b30dcdaedd35
         graphlengths = np.array([len(g)+g.number_of_edges() for g in graphs])
-
         val  = self.graph_size_limiter(graphlengths)
         logger.debug("debug values for size cutoff calculation")
         logger.debug(val)
