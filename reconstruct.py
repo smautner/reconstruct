@@ -98,10 +98,10 @@ instancemakerparams = maketasks(params_insta)
 params_opt = {
     'keyorder' :  ["core_sizes","min_count","context_size","removeworst",'n_iter','multiproc',"add_grammar_rules","keepgraphs",
                    "squared_error", "graph_size_limiter", "cipselector_option", "cipselector_k", "use_normalization", "pareto_option"],
-    "core_sizes" : [[0,1,2]], # on exp graph ##### was [[0,2,4]]
+    "core_sizes" : None, # on exp graph ##### was [[0,2,4]]
     "removeworst":[0],
     'min_count':[2],
-    "context_size":[2], # you want 2 or 4 ... ##### was [2]
+    "context_size":None, # you want 2 or 4 ... ##### was [2]
     "n_iter":[20], # 5 just for ez problems
     "keepgraphs":[30], # Ensure this is a multiple of 6 to not cause weird rounding errors.
     'multiproc': [4],
@@ -121,21 +121,21 @@ params_opt = {
 parser = argparse.ArgumentParser()
 parser.add_argument('--core_sizes', nargs='*', type=int, default=[0,1,2], 
                     help='Core sizes/Radii')
-parser.add_argument('--context_size', nargs=1, type=float, default=[2],
+parser.add_argument('--context_size', nargs=1, type=float, default=[1],
                     help='Context sizes/Thickness')
-parser.add_argument('--cipselector_option', nargs=1, type=int, default=[1],
-                    choices=[1, 2],
+parser.add_argument('--cipselector_option', nargs=1, type=int, default=[1], ## Change this back
+                    choices=[0, 1, 2],
                     help='1: Take k best from all, 2: Take k best from each current cip')
 parser.add_argument('--cipselector_k', nargs=1, type=int, default=[100],
                     help='k for Cipselector')
-parser.add_argument('--pareto_option', nargs=1, type=str, default=['default'],
+parser.add_argument('--pareto_option', nargs=1, type=str, default=['greedy'],
                     choices=['default', 'random', 'greedy', 'pareto_only', 'all'],
                     help='Pareto option for optimization')
 parser.add_argument('--use_normalization', nargs=1, type=int, default=[1], choices=[1,0],
                     help='If 1, normalization will be applied for cipselection')
 parser.add_argument('--min_count', nargs=1, type=int, default=[2], 
                     help='Also called min_cip')
-parser.add_argument('--graph_size_limiter', nargs=1, type=int, default=[0], choices=[1,0],
+parser.add_argument('--graph_size_limiter', nargs=1, type=int, default=[1], choices=[1,0],
                     help='If 0, graph size limiter is only used with a graphs >100')
 parser.add_argument('--taskid', nargs=1, type=int, default=[0])
 parser.add_argument('--resprefix', nargs=1, type=str, default=['.res'],

@@ -3,10 +3,10 @@
 source /beegfs/work/workspace/ws/fr_mh595-conda-0/conda/etc/profile.d/conda.sh
 conda activate binenv
 
-REPEATS=50 ### Change to 100 for Normal or 250 for Chem
+REPEATS=250 ### Change to 100 for Normal or 250 for Chem
 
 execute () {    #### Make sure to change filename in first sed command to 'chem_runall_binac.sh' or just 'runall_binac.sh'
-    sed '/reconstruct.py/s/$/'"$STRING"'/' runall_binac.sh > .run_$RESPREFIX.sh
+    sed '/reconstruct.py/s/$/'"$STRING"'/' chem_runall_binac.sh > .run_$RESPREFIX.sh
 #IF sed is not used:	JOBID=$(qsub -q short -t 1-$REPEATS runall_binac.sh "$STRING"| sed -r 's/^[^0-9]*([0-9]+).*$/\1/')
     JOBID=$(qsub -q short -t 1-$REPEATS .run_$RESPREFIX.sh | sed -r 's/^[^0-9]*([0-9]+).*$/\1/')
     echo "Current Task: $JOBID : $STRING"
@@ -27,19 +27,21 @@ pass () {
     echo "Passing on: $RESPREFIX"
 }
 
-mkdir results
+
 echo "Start: $(date)"
 ## Parameter Optimization
-#for CIPK in 50 100; do
+#for NORMALIZATION in 0 1; do
+#for CIPK in 100 200; do
 #    for CONTEXTSIZE in 1 2; do
 #        for MINCOUNT in 1 2; do
 #            for SIZELIMITER in 0 1; do
-#                RESPREFIX="$CIPK-$CONTEXTSIZE-$MINCOUNT-$SIZELIMITER"
-#                STRING=" --cipselector_k $CIPK --context_size $CONTEXTSIZE --min_count $MINCOUNT --graph_size_limiter $SIZELIMITER --resprefix $RESPREFIX"
-#                pass ##  Replace this with report/execute/pass
+#                RESPREFIX="$CIPK-$CONTEXTSIZE-$MINCOUNT-$SIZELIMITER-$NORMALIZATION"
+#                STRING=" --cipselector_k $CIPK --context_size $CONTEXTSIZE --min_count $MINCOUNT --graph_size_limiter $SIZELIMITER --use_normalization $NORMALIZATION --resprefix $RESPREFIX"
+#                report ##  Replace this with report/execute/pass
 #            done
 #        done
 #    done
+#done
 #done
 
 ## Chemset Comparison
@@ -52,17 +54,17 @@ echo "Start: $(date)"
 #done
 
 ## Artificial Comparison
-for CONTEXTSIZE in 1 2; do
-    RESPREFIX="coresizes-012-contextsize-$CONTEXTSIZE"
-    STRING=" --core_sizes 0 1 2 --context_size $CONTEXTSIZE --resprefix $RESPREFIX"
-    report
-    RESPREFIX="coresizes-01-contextsize-$CONTEXTSIZE"
-    STRING=" --core_sizes 0 1 --context_size $CONTEXTSIZE --resprefix $RESPREFIX"
-    report
-    RESPREFIX="coresizes-0-contextsize-$CONTEXTSIZE"
-    STRING=" --core_sizes 0 --context_size $CONTEXTSIZE --resprefix $RESPREFIX"
-    report
-done
+#for CONTEXTSIZE in 1 2; do
+#    RESPREFIX="coresizes-012-contextsize-$CONTEXTSIZE"
+#    STRING=" --core_sizes 0 1 2 --context_size $CONTEXTSIZE --resprefix $RESPREFIX"
+#    report
+#    RESPREFIX="coresizes-01-contextsize-$CONTEXTSIZE"
+#    STRING=" --core_sizes 0 1 --context_size $CONTEXTSIZE --resprefix $RESPREFIX"
+#    report
+#    RESPREFIX="coresizes-0-contextsize-$CONTEXTSIZE"
+#    STRING=" --core_sizes 0 --context_size $CONTEXTSIZE --resprefix $RESPREFIX"
+#    report
+#done
 
 
 ## Cipselector 1: 100 200 400 800
@@ -88,11 +90,10 @@ for NORM in 0; do
 done
 
 ## Pareto Options: ###### REMOVED 'all' FOR CHEMSETS
-##for PARETO in 'random' 'greedy' 'pareto_only' 'default'; do
-for PARETO in 'greedy' 'default'; do
+for PARETO in 'random' 'greedy' 'pareto_only' 'all' 'default'; do
     RESPREFIX="pareto_$PARETO"
     STRING=" --pareto_option $PARETO --resprefix $RESPREFIX"
-    pass
+    execute
 done
 
 ## Contextsizes/Thickness: 
