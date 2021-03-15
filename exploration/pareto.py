@@ -355,7 +355,7 @@ class MYOPTIMIZER(object):
         return costs
 
     def _get_neighbors(self, graph):
-        current_graph_vector = csr_matrix(vertex_vec(graph, self.decomposer).sum(axis=0))
+        current_graph_vector = csr_matrix(vertex_vec(graph, _decomposer).sum(axis=0))
 ##        neighs = list(self.grammar.neighbors(graph=graph)) #####
         neighs = list(self.grammar.neighbors(graph=graph, selectordata=[self.target_graph_vector,
                                                                         current_graph_vector,
@@ -365,6 +365,8 @@ class MYOPTIMIZER(object):
 
     def _expand_neighbors(self, graphs):
         timenow = time.time()
+        global _decomposer ##### Stupid hack but I dont know how else to allow lambda functions in multiprocessing
+        _decomposer = self.decomposer #####
         if self.multiproc>1:
             with multiprocessing.Pool(self.multiproc) as p:
                 res = list(concat(p.map(self._get_neighbors,graphs)))

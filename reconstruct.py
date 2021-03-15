@@ -18,6 +18,7 @@ from ego.decomposition.paired_neighborhoods import decompose_neighborhood
 from graphlearn.cipcorevector import vertex_vec
 from scipy.sparse import csr_matrix
 
+
 '''
 USAGE:
     python3 reconstruct.py  to generate problem instances
@@ -142,6 +143,8 @@ parser.add_argument('--resprefix', nargs=1, type=str, default=['.res'],
                     help='Output folder')
 parser.add_argument('-c', '--chem', action='store_true', 
                     help='If used, chemtasks will be executed, not required for reportchem.')
+parser.add_argument('--max_decompose_radius', nargs=1, type=int, default=[1],
+                    help='Max radius for decompose neighborhood')
 parsed_args = vars(parser.parse_known_args()[0])
 taskid = parsed_args.pop('taskid')[0]
 use_chem = parsed_args.pop('chem')
@@ -150,6 +153,7 @@ use_graph_size_limiter = parsed_args.pop('graph_size_limiter')[0]
 if not use_graph_size_limiter:
     params_opt['graph_size_limiter'] = [lambda x: 100]
 parsed_args['core_sizes'] = [parsed_args['core_sizes']]
+max_decompose_radius = parsed_args.pop('max_decompose_radius')[0]
 params_opt.update(parsed_args)
 
 
@@ -352,12 +356,15 @@ def report(folder = '.res', tasklist=None):
 # RUNNING 
 ############################
 
+def decompose(x):
+    return decompose_neighborhood(x, max_radius=max_decompose_radius)
+
 def reconstruct_and_evaluate(target_graph,
                                 landmark_graphs,
                                 desired_distances,
                                 ranked_graphs,
                                 **args):
-    decomposer = decompose_neighborhood
+    decomposer = decompose
     # genmaxsize= np.average([g.number_of_nodes() for g in landmark_graphs]) * 1.3 ## Currently not used.
     optimizer = pareto.LocalLandmarksDistanceOptimizer(decomposer=decomposer, **args)
     target_graph_vector = csr_matrix(vertex_vec(target_graph, decomposer).sum(axis=0))
