@@ -5,7 +5,7 @@ import queue
 import heapq
 import numpy as np
 from eden.util import timeit
-#from graphlearn.local_substitution_graph_grammar import LocalSubstitutionGraphGrammar as lsgg
+### from graphlearn.local_substitution_graph_grammar import LocalSubstitutionGraphGrammar as lsggold ########## TMP
 from graphlearn.cipcorevector import LsggCoreVec as lsgg
 from toolz.curried import compose, map, concat
 from exploration.pareto_funcs import _manage_int_or_float
@@ -38,6 +38,20 @@ def score_productions(target_csr, current_csr, productions, use_normalization):
                             for curent_cip, con_cip in productions]
     scores = np.dot(target_csr, predicted_vectors)
     return scores
+
+
+def new_cipselector0(current_cips_congrus, target_graph_vector, current_graph_vector, use_normalization, cipselector_k):
+    """
+    Option 0 for the new cipselector. Using this option we will be able to generate a total of k productions.
+
+    Args:
+      current_cips_congrus (list): [(current_cip, concip), (), ...]
+      target_graph_vector (matrix): Vector of the target graph
+      current_graph_vector (matrix): Vector of the current graph 
+    """
+    target_csr = target_graph_vector
+    scores = score_productions(target_csr, current_graph_vector, current_cips_congrus, use_normalization)
+    return [(sco, prd) for sco, prd in zip(scores, current_cips_congrus)]
 
 
 def new_cipselector(current_cips_congrus, target_graph_vector, current_graph_vector, use_normalization, cipselector_k):
@@ -214,7 +228,11 @@ class MYOPTIMIZER(object):
         if status: return [],True,None
         graphs = self.filter_by_cost(costs, graphs)
         num_graphs = len(graphs)
-        graphs = self._expand_neighbors(graphs)
+        if self.grammar.cipselector == new_cipselector0:  ### SPECIAL CASE
+            logger.log(10, "USING CIPSELECTOR 0")
+            graphs = self._expand_neighbors2(graphs)
+        else:
+            graphs = self._expand_neighbors(graphs)
         avg_productions = len(graphs)/num_graphs
         logger.log(10, f"Average productions per graph: {avg_productions}")
         graphs = self.duplicate_rm(graphs)
@@ -337,17 +355,18 @@ class MYOPTIMIZER(object):
         return costs
 
     def _get_neighbors(self, graph):
-        current_graph_vector = csr_matrix(vertex_vec(graph, self.decomposer).sum(axis=0))
+        current_graph_vector = csr_matrix(vertex_vec(graph, _decomposer).sum(axis=0))
+##        neighs = list(self.grammar.neighbors(graph=graph)) #####
         neighs = list(self.grammar.neighbors(graph=graph, selectordata=[self.target_graph_vector,
                                                                         current_graph_vector,
                                                                         self.use_normalization,
                                                                         self.cipselector_k]))
-        for n in neighs:
-            n.graph['history']= graph.graph['history'].copy()
         return neighs
 
     def _expand_neighbors(self, graphs):
         timenow = time.time()
+        global _decomposer ##### Stupid hack but I dont know how else to allow lambda functions in multiprocessing
+        _decomposer = self.decomposer #####
         if self.multiproc>1:
             with multiprocessing.Pool(self.multiproc) as p:
                 res = list(concat(p.map(self._get_neighbors,graphs)))
@@ -357,6 +376,38 @@ class MYOPTIMIZER(object):
             res = list(concat(map(self._get_neighbors,graphs)))
             logger.debug("graph generation: %.2fs" %  (time.time()-timenow))
             return res
+
+
+    def _get_score_substitution(self, graph): #
+        """Only used with Cipselector Option 0. Replaces _get_neighbors"""
+        current_graph_vector = csr_matrix(vertex_vec(graph, self.decomposer).sum(axis=0))
+        neighs = list(self.grammar.scored_substitutions(graph=graph, selectordata=[self.target_graph_vector,
+                                                                        current_graph_vector,
+                                                                        self.use_normalization,
+                                                                        self.cipselector_k]))
+        return neighs
+
+    def _expand_neighbors2(self, graphs): #
+        """Only used with Cipselector Option 0. Replaces _expand_neighbors"""
+        timenow = time.time()
+        if self.multiproc>1:
+            with multiprocessing.Pool(self.multiproc) as p:
+                res = list(concat(p.map(self._get_score_substitution,graphs)))
+                logger.debug("graph generation: %.2fs" %  (time.time()-timenow))
+        else:
+            res = list(concat(map(self._get_score_substitution,graphs)))
+            logger.debug("graph generation: %.2fs" %  (time.time()-timenow))
+        res.sort(reverse=True, key=lambda a: a[0])
+        counter = 0
+        grlist = []
+        for sc,sub,gr in res:
+            graph_ = self.grammar._substitute_core(gr, sub[0], sub[1])
+            if graph_ is not None:
+                grlist.append(graph_)
+                counter += 1
+                if counter >= self.cipselector_k:
+                    break
+        return grlist
 
 
 class lsgg_size_hack(lsgg): # Back in use!
@@ -387,6 +438,17 @@ class lsgg_size_hack(lsgg): # Back in use!
                 yield graph_
 
 
+    def scored_substitutions(self, graph, selectordata, filter = lambda x:True): #
+        """Returns score subsitutions"""
+        grlen = len(graph)
+        current_cips = self._get_cips(graph,filter)
+        current_cips_congrus = [(current_cip,concip) for current_cip in current_cips 
+                for concip in self._get_congruent_cips(current_cip) if len(concip.core_nodes) + grlen - len(current_cip.core_nodes) <= self.genmaxsize]
+        for score,production in new_cipselector0(current_cips_congrus,*selectordata):
+            yield score, production, graph
+
+
+
 class LocalLandmarksDistanceOptimizer(object):
     """LocalLandmarksDistanceOptimizer."""
 
@@ -415,6 +477,8 @@ class LocalLandmarksDistanceOptimizer(object):
             cipselector = new_cipselector
         elif cipselector_option == 2:
             cipselector = new_cipselector2
+        elif cipselector_option == 0: # Special option
+            cipselector = new_cipselector0
         else:
             raise ValueError("Invalid Cipselector Option")
         self.graph_size_limiter = graph_size_limiter
@@ -425,10 +489,10 @@ class LocalLandmarksDistanceOptimizer(object):
         self.max_size_frontier = max_size_frontier
         self.output_k_best = output_k_best
         self.decomposer = decomposer
-        self.grammar = lsgg_size_hack(core_vec_decomposer=decomposer, cipselector=cipselector, nodelevel_radius_and_thickness=True) #cip_root_all=False, half_step_distance=True)
-##        self.grammar = lsgg(core_vec_decomposer=decomposer, cipselector=cipselector, nodelevel_radius_and_thickness=True) #cip_root_all=False, half_step_distance=True)
-        self.grammar.radii = core_sizes #self.grammar.set_core_size(core_sizes)
-        self.grammar.thickness = context_size #self.grammar.decomposition_args['thickness_list'] = [context_size]
+        self.grammar = lsgg_size_hack(radii=core_sizes, thickness=context_size, core_vec_decomposer=decomposer, cipselector=cipselector, nodelevel_radius_and_thickness=True) #cip_root_all=False, half_step_distance=True)
+###        self.grammar = lsggold(nodelevel_radius_and_thickness=True) #cip_root_all=False, half_step_distance=True)
+##        self.grammar.radii = core_sizes #self.grammar.set_core_size(core_sizes)
+##        self.grammar.thickness = context_size #self.grammar.decomposition_args['thickness_list'] = [context_size]
         #self.grammar.set_min_count(min_count) interfacecount 1 makes no sense
         self.grammar.filter_min_cip = min_count #self.grammar.filter_args['min_cip_count'] = min_count
         self.optiopts = kwargs
