@@ -283,6 +283,15 @@ class MYOPTIMIZER(object):
            paretoselectedgraphs = paretof._pareto_set(restgraphs, restcosts)
            random.shuffle(paretoselectedgraphs)
            res += paretoselectedgraphs[:int(keepgraphs/2)]
+        
+        elif self.pareto_option == "paretogreed":
+            # 1. choose pareto graphs 
+            # 2. new score is the average rank over all costs 
+            # 3. choose k best of those 
+           graphs, costs = paretof._pareto_set(graphs, costs,return_costs=True)
+           costs_ranked = np.argsort(costs,axis=0).sum(axis=1)
+           choosegr = np.argsort(costs_ranked) 
+           res = [graphs[x] for x in choosegr[:keepgraphs]]
         else:
             paretoselectedgraphs = paretof._pareto_set(graphs, costs)
             random.shuffle(paretoselectedgraphs)
