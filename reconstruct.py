@@ -117,6 +117,7 @@ params_opt = {
 # Pareto Option "default": (3*5 best graphs for each category + 15 pareto front)
 # Pareto Option "random":  (No pareto front and no 3*5 best graphs. Just take 30 random graphs total)
 # Pareto Option "greedy":  (Instead of using the pareto front, take graphs with the lowest direct distance to the target)
+# Pareto Option "paretogreed":  (Greedy approach for pareto front)
 # Pareto Option "pareto_only": (Instead of using the 3*5 best graphs it takes double the graphs from the pareto front.
 # Pareto Option: "all": (Takes EVERY graph from the pareto front)
 parser = argparse.ArgumentParser()
@@ -127,11 +128,13 @@ parser.add_argument('--context_size', nargs=1, type=float, default=[1],
 parser.add_argument('--cipselector_option', nargs=1, type=int, default=[1], ## Change this back
                     choices=[0, 1, 2],
                     help='1: Take k best from all, 2: Take k best from each current cip')
-parser.add_argument('--cipselector_k', nargs=1, type=int, default=[100],
+parser.add_argument('--cipselector_k', nargs=1, type=int, default=[10],
                     help='k for Cipselector')
 parser.add_argument('--pareto_option', nargs=1, type=str, default=['greedy'],
-                    choices=['default', 'random', 'greedy', 'pareto_only', 'all'],
+                    choices=['default', 'random', 'greedy', 'paretogreed', 'pareto_only', 'all'],
                     help='Pareto option for optimization')
+parser.add_argument('--keepgraphs', nargs=1, type=int, default=[30],
+                    help='Number of graphs kept from the pareto part')
 parser.add_argument('--use_normalization', nargs=1, type=int, default=[1], choices=[1,0],
                     help='If 1, normalization will be applied for cipselection')
 parser.add_argument('--min_count', nargs=1, type=int, default=[2], 
@@ -339,10 +342,12 @@ def report(folder = '.res', tasklist=None):
     lsuccess = [int(succ) for data in dat.values() for v in data.values() for succ,steps,times,avg in v]
     avg_productions = np.array([int(avg) for data in dat.values() for v in data.values() for succ,steps,times,avg in v])
     rnd = [int(steps) for data in dat.values() for v in data.values() for succ,steps,times,avg in v]
+    time = np.array([int(times) for data in dat.values() for v in data.values() for succ,steps,times,avg in v])
     print ("nores",nores)
     print ('nosucc',nosucc)
     print ("sumsuccess:", sum(lsuccess), lsuccess)
     print ("Average productions:", avg_productions.mean(), avg_productions)
+    print ("Average times:", np.average(time), time)
 #    print ("maxrnd:", max([int(b) for c in dat.values() for a,b,_ in c.values()]))
     print("maxrnd:", max(rnd))
     
