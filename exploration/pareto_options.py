@@ -1,5 +1,7 @@
-import pareto_funcs as paretof
+import exploration.pareto_funcs as paretof
+from graphlearn.cipcorevector import vertex_vec
 import numpy as np
+from sklearn.metrics.pairwise import euclidean_distances
 
 def greedy(graphs, target, decomposer, keepgraphs):
     """

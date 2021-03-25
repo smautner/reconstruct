@@ -235,9 +235,9 @@ class MYOPTIMIZER(object):
             graphs = self._expand_neighbors(graphs)
         graphlen_expand = len(graphs)
         avg_productions = graphlen_expand/graphlen_filter
-        logger.log(10, f"graph generation: Got {avg_productions} per graph. ({time.time()-timenow})")
+        logger.log(10, f"graph generation: Got {avg_productions} per graph. ({time.time()-step_start_time})")
         graphs = self.duplicate_rm(graphs)
-        logger.log(10, "duplicate_rm: {graphlen_expand} -> {len(graphs} graphs. ({time.time()-timenow})")
+        logger.log(10, f"duplicate_rm: {graphlen_expand} -> {len(graphs)} graphs. ({time.time()-step_start_time})")
         return graphs, status, avg_productions
 
    
@@ -247,7 +247,7 @@ class MYOPTIMIZER(object):
         and pareto front, discard rest"""
         keepgraphs = self.keepgraphs
                     
-        if in_count <= self.keepgraphs:
+        if len(graphs) <= self.keepgraphs:
             # Only few graphs remaining so just return all of them.
             logger.log(10, "cost_filter: keep all graphs")
             return graphs
@@ -267,7 +267,7 @@ class MYOPTIMIZER(object):
         
         elif self.pareto_option == 'greedy':
             # Return graphs with the lowest euclidean distance to the target vector
-            return pareto_option.greedy(graphs, self.target_graph_vector, self.decomposer, keepgraphs)
+            return pareto_options.greedy(graphs, self.target_graph_vector, self.decomposer, keepgraphs)
 
         costs = self.get_costs(graphs)
         status = self.checkstatus(costs, graphs)
@@ -277,13 +277,13 @@ class MYOPTIMIZER(object):
 
         elif self.pareto_option == "default":
             # Take best graphs from estimators and pareto front
-            return pareto_option.default(graphs, costs, keepgraphs), False
+            return pareto_options.default(graphs, costs, keepgraphs), False
         
         elif self.pareto_option == "paretogreed":
             # 1. choose pareto graphs 
             # 2. new score is the average rank over all costs
             # 3. choose k best of those 
-           return pareto_option.paretogreed(graphs, costs, keepgraphs), False
+           return pareto_options.paretogreed(graphs, costs, keepgraphs), False
         
         paretoselectedgraphs = paretof._pareto_set(graphs, costs)
         random.shuffle(paretoselectedgraphs)
