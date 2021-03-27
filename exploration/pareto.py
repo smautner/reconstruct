@@ -10,7 +10,7 @@ from toolz.curried import compose, map, concat
 from exploration.pareto_funcs import _manage_int_or_float
 logger = logging.getLogger(__name__)
 import structout as so
-from exploration import pareto_options, cost_estimator as costs
+from exploration import pareto_options, pareto_funcs as paretof, cost_estimator as costs
 from extensions import lsggscramble as lsggs
 from sklearn.metrics.pairwise import euclidean_distances
 
@@ -246,16 +246,18 @@ class MYOPTIMIZER(object):
         """expand "keepgraphs" graphs, divided between top graphs in everything
         and pareto front, discard rest"""
         keepgraphs = self.keepgraphs
+
+        costs = self.get_costs(graphs)
+        status = self.checkstatus(costs, graphs)
+        if status:
+            # Some graph has distance == 0
+            return graphs, True
                     
         if len(graphs) <= self.keepgraphs:
             # Only few graphs remaining so just return all of them.
             logger.log(10, "cost_filter: keep all graphs")
-            return graphs
+            return graphs, False
         
-        elif self.pareto_option == "random":
-            # Return randomly selected graphs without any application of pareto.
-            res =  random.sample(graphs, keepgraphs)
-
 ##        elif self.prefilter_kick!=0:
 ##            # DELETE THE 25% worst in each category
 ##            assert False
@@ -264,16 +266,14 @@ class MYOPTIMIZER(object):
 ##            keep =  [i for i in range(len(graphs)) if i not in trash]
 ##            graphs = [graphs[i] for i in keep]
 ##            costs = costs[keep]
-        
+
         elif self.pareto_option == 'greedy':
             # Return graphs with the lowest euclidean distance to the target vector
             return pareto_options.greedy(graphs, self.target_graph_vector, self.decomposer, keepgraphs)
 
-        costs = self.get_costs(graphs)
-        status = self.checkstatus(costs, graphs)
-        if status:
-            # Some graph has distance == 0
-            return graphs, True
+        elif self.pareto_option == "random":
+            # Return randomly selected graphs without any application of pareto.
+            return random.sample(graphs, keepgraphs), False
 
         elif self.pareto_option == "default":
             # Take best graphs from estimators and pareto front
@@ -287,6 +287,7 @@ class MYOPTIMIZER(object):
         
         paretoselectedgraphs = paretof._pareto_set(graphs, costs)
         random.shuffle(paretoselectedgraphs)
+
         if self.pareto_option == "pareto_only":
             # Return only graphs from the pareto front
             return paretoselectedgraphs[:keepgraphs], False

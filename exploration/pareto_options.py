@@ -2,6 +2,8 @@ import exploration.pareto_funcs as paretof
 from graphlearn.cipcorevector import vertex_vec
 import numpy as np
 from sklearn.metrics.pairwise import euclidean_distances
+import random
+
 
 def greedy(graphs, target, decomposer, keepgraphs):
     """
@@ -13,7 +15,7 @@ def greedy(graphs, target, decomposer, keepgraphs):
         distances.append(euclidean_distances(target, vertex_vec(g, decomposer).sum(axis=0))[0][0])
     ranked_distances = np.argsort(distances)[:keepgraphs]
     res =  [graphs[i] for i in ranked_distances]
-    if distances[ranked_distances[0]] == 0:
+    if distances[ranked_distances[0]] <= 0:
         ## => At least 1 distance is 0 => Successful reconstruction
         return res, True
     return res, False
