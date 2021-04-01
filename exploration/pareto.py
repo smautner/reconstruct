@@ -247,11 +247,12 @@ class MYOPTIMIZER(object):
         and pareto front, discard rest"""
         keepgraphs = self.keepgraphs
 
-        costs = self.get_costs(graphs)
-        status = self.checkstatus(costs, graphs)
-        if status:
-            # Some graph has distance == 0
-            return graphs, True
+        if True:  # Greedy Cost calculation doesnt work at the moment.. self.pareto_option != 'greedy':
+            costs = self.get_costs(graphs)
+            status = self.checkstatus(costs, graphs)
+            if status:
+                # Some graph has distance == 0
+                return graphs, True
                     
         if len(graphs) <= self.keepgraphs:
             # Only few graphs remaining so just return all of them.

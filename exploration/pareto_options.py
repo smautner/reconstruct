@@ -11,11 +11,14 @@ def greedy(graphs, target, decomposer, keepgraphs):
     Also returns if one of the distances equals 0.
     """
     distances = []
+####    distances = euclidean_distances(target, vertex_vec(graphs, decomposer))
     for g in graphs:
         distances.append(euclidean_distances(target, vertex_vec(g, decomposer).sum(axis=0))[0][0])
+    if min(distances) == 0:
+        return graphs, True
     ranked_distances = np.argsort(distances)[:keepgraphs]
     res =  [graphs[i] for i in ranked_distances]
-    if distances[ranked_distances[0]] <= 0:
+    if distances[ranked_distances[0]] < 0.000001:
         ## => At least 1 distance is 0 => Successful reconstruction
         return res, True
     return res, False

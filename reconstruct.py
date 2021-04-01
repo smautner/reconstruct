@@ -45,7 +45,7 @@ def maketasks(params):
 ##  OPTIONS FOR GRAPHS
 ##########################################
 
-EXPERIMENT_REPEATS = 50 #### CHANGE THIS BACK TO 100! 50 only for chemsets
+EXPERIMENT_REPEATS = 20 #### CHANGE THIS BACK TO 100! 50 only for chemsets
 # 1. param dict
 
 params_graphs = {
