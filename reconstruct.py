@@ -45,7 +45,7 @@ def maketasks(params):
 ##  OPTIONS FOR GRAPHS
 ##########################################
 
-EXPERIMENT_REPEATS = 20 #### CHANGE THIS BACK TO 100! 50 only for chemsets
+EXPERIMENT_REPEATS = 50
 # 1. param dict
 
 params_graphs = {
@@ -125,7 +125,7 @@ parser.add_argument('--core_sizes', nargs='*', type=int, default=[0,1,2],
                     help='Core sizes/Radii')
 parser.add_argument('--context_size', nargs=1, type=float, default=[1],
                     help='Context sizes/Thickness')
-parser.add_argument('--cipselector_option', nargs=1, type=int, default=[1], ## Change this back
+parser.add_argument('--cipselector_option', nargs=1, type=int, default=[2], ## Change this back
                     choices=[0, 1, 2],
                     help='1: Take k best from all, 2: Take k best from each current cip')
 parser.add_argument('--cipselector_k', nargs=1, type=int, default=[10],
@@ -137,7 +137,7 @@ parser.add_argument('--keepgraphs', nargs=1, type=int, default=[30],
                     help='Number of graphs kept from the pareto part')
 parser.add_argument('--use_normalization', nargs=1, type=int, default=[1], choices=[1,0],
                     help='If 1, normalization will be applied for cipselection')
-parser.add_argument('--min_count', nargs=1, type=int, default=[2], 
+parser.add_argument('--min_count', nargs=1, type=int, default=[1], 
                     help='Also called min_cip')
 parser.add_argument('--graph_size_limiter', nargs=1, type=int, default=[1], choices=[1,0],
                     help='If 0, graph size limiter is only used with a graphs >100')

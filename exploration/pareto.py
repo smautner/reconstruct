@@ -482,10 +482,6 @@ class LocalLandmarksDistanceOptimizer(object):
         self.output_k_best = output_k_best
         self.decomposer = decomposer
         self.grammar = lsgg_size_hack(radii=core_sizes, thickness=context_size, core_vec_decomposer=decomposer, cipselector=cipselector, nodelevel_radius_and_thickness=True) #cip_root_all=False, half_step_distance=True)
-###        self.grammar = lsggold(nodelevel_radius_and_thickness=True) #cip_root_all=False, half_step_distance=True)
-##        self.grammar.radii = core_sizes #self.grammar.set_core_size(core_sizes)
-##        self.grammar.thickness = context_size #self.grammar.decomposition_args['thickness_list'] = [context_size]
-        #self.grammar.set_min_count(min_count) interfacecount 1 makes no sense
         self.grammar.filter_min_cip = min_count #self.grammar.filter_args['min_cip_count'] = min_count
         self.optiopts = kwargs
         self.cs2cs = cs2cs
