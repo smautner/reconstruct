@@ -5,13 +5,12 @@ import queue
 import heapq
 import numpy as np
 from eden.util import timeit
-### from graphlearn.local_substitution_graph_grammar import LocalSubstitutionGraphGrammar as lsggold ########## TMP
 from graphlearn.cipcorevector import LsggCoreVec as lsgg
 from toolz.curried import compose, map, concat
 from exploration.pareto_funcs import _manage_int_or_float
 logger = logging.getLogger(__name__)
 import structout as so
-from exploration import pareto_funcs as paretof, cost_estimator as costs
+from exploration import pareto_options, pareto_funcs as paretof, cost_estimator as costs
 from extensions import lsggscramble as lsggs
 from sklearn.metrics.pairwise import euclidean_distances
 
@@ -223,39 +222,43 @@ class MYOPTIMIZER(object):
 
     def optimize_step(self, graphs):
         # filter, expand, chk duplicates
-        costs = self.get_costs(graphs)
-        status = self.checkstatus(costs, graphs)
+        step_start_time = time.time()
+        graphlen_start = len(graphs)
+        graphs, status = self.filter_by_cost(graphs)
         if status: return [],True,None
-        graphs = self.filter_by_cost(costs, graphs)
+        graphlen_filter = len(graphs)
+        logger.log(10, f"cost_filter: Got {graphlen_start} graphs, reduced to {graphlen_filter} ({time.time()-step_start_time})")
         num_graphs = len(graphs)
         if self.grammar.cipselector == new_cipselector0:  ### SPECIAL CASE
-            logger.log(10, "USING CIPSELECTOR 0")
             graphs = self._expand_neighbors2(graphs)
         else:
             graphs = self._expand_neighbors(graphs)
-        avg_productions = len(graphs)/num_graphs
-        logger.log(10, f"Average productions per graph: {avg_productions}")
+        graphlen_expand = len(graphs)
+        avg_productions = graphlen_expand/graphlen_filter
+        logger.log(10, f"graph generation: Got {avg_productions} per graph. ({time.time()-step_start_time})")
         graphs = self.duplicate_rm(graphs)
+        logger.log(10, f"duplicate_rm: {graphlen_expand} -> {len(graphs)} graphs. ({time.time()-step_start_time})")
         return graphs, status, avg_productions
 
    
 
-    def filter_by_cost(self,costs,graphs):
+    def filter_by_cost(self,graphs):
         """expand "keepgraphs" graphs, divided between top graphs in everything
         and pareto front, discard rest"""
-        timenow=time.time()
-        in_count = len(graphs)
         keepgraphs = self.keepgraphs
-                    
-        if in_count <= self.keepgraphs:
-            # Only few graphs remaining so just return all of them.
-            logger.debug('cost_filter: keep all %d graphs' % in_count)
-            return graphs
-        
-        elif self.pareto_option == "random":
-            # Return randomly selected graphs without any application of pareto.
-            res =  random.sample(graphs, keepgraphs)
 
+        if True:  # Greedy Cost calculation doesnt work at the moment.. self.pareto_option != 'greedy':
+            costs = self.get_costs(graphs)
+            status = self.checkstatus(costs, graphs)
+            if status:
+                # Some graph has distance == 0
+                return graphs, True
+                    
+        if len(graphs) <= self.keepgraphs:
+            # Only few graphs remaining so just return all of them.
+            logger.log(10, "cost_filter: keep all graphs")
+            return graphs, False
+        
 ##        elif self.prefilter_kick!=0:
 ##            # DELETE THE 25% worst in each category
 ##            assert False
@@ -264,45 +267,37 @@ class MYOPTIMIZER(object):
 ##            keep =  [i for i in range(len(graphs)) if i not in trash]
 ##            graphs = [graphs[i] for i in keep]
 ##            costs = costs[keep]
-        
+
         elif self.pareto_option == 'greedy':
             # Return graphs with the lowest euclidean distance to the target vector
-            distances = []
-            for g in graphs:
-                distances.append(euclidean_distances(self.target_graph_vector, vertex_vec(g, self.decomposer).sum(axis=0))[0][0])
-            ranked_distances = np.argsort(distances)[:keepgraphs]
-            res =  [graphs[i] for i in ranked_distances]
+            return pareto_options.greedy(graphs, self.target_graph_vector, self.decomposer, keepgraphs)
+
+        elif self.pareto_option == "random":
+            # Return randomly selected graphs without any application of pareto.
+            return random.sample(graphs, keepgraphs), False
+
         elif self.pareto_option == "default":
             # Take best graphs from estimators and pareto front
-           costs_ranked = np.argsort(costs,axis=0)[:int(keepgraphs/6),[0,1,3]]
-           want , counts = np.unique(costs_ranked,return_counts=True)
-           res = [graphs[idd] for idd,count in zip( want,counts) if count > 0 ]
-           dontwant = [i for i in range(len(graphs)) if i not in want]
-           restgraphs = [graphs[i] for i in dontwant]
-           restcosts = costs[dontwant][:,[0,1,2]]
-           paretoselectedgraphs = paretof._pareto_set(restgraphs, restcosts)
-           random.shuffle(paretoselectedgraphs)
-           res += paretoselectedgraphs[:int(keepgraphs/2)]
+            return pareto_options.default(graphs, costs, keepgraphs), False
         
         elif self.pareto_option == "paretogreed":
             # 1. choose pareto graphs 
-            # 2. new score is the average rank over all costs 
+            # 2. new score is the average rank over all costs
             # 3. choose k best of those 
-           graphs, costs = paretof._pareto_set(graphs, costs,return_costs=True)
-           costs_ranked = np.argsort(costs,axis=0).sum(axis=1)
-           choosegr = np.argsort(costs_ranked) 
-           res = [graphs[x] for x in choosegr[:keepgraphs]]
-        else:
-            paretoselectedgraphs = paretof._pareto_set(graphs, costs)
-            random.shuffle(paretoselectedgraphs)
+           return pareto_options.paretogreed(graphs, costs, keepgraphs), False
+        
+        paretoselectedgraphs = paretof._pareto_set(graphs, costs)
+        random.shuffle(paretoselectedgraphs)
 
-            if self.pareto_option == "pareto_only":
-                # Return only graphs from the pareto front
-                res = paretoselectedgraphs[:keepgraphs]
-            
-            elif self.pareto_option == "all":
-                # Return ALL graphs from the pareto front
-                res = paretoselectedgraphs
+        if self.pareto_option == "pareto_only":
+            # Return only graphs from the pareto front
+            return paretoselectedgraphs[:keepgraphs], False
+        
+        elif self.pareto_option == "all":
+            # Return ALL graphs from the pareto front
+            return paretoselectedgraphs, False
+        else:
+            raise ValueError("Invalid Pareto Option")
 
 ##        # DEBUG TO SHOW THE REAL DISTANCE
 ##        if self.cheat:
@@ -320,16 +315,10 @@ class MYOPTIMIZER(object):
 ##                from util import util
 ##                util.dumpfile(graphs[costs_ranked[stuff][0]],"gr")
 ##                print ("graph dumped")
-        logger.log(10, f"cost_filter: got {in_count} graphs, reduced to {len(res)} (%.2fs)"%(time.time()-timenow))
-
-        return res
 
    
     def duplicate_rm(self,graphs):
-        timenow=time.time()
-        count = len(graphs)
         graphs  = list(self._duplicate_rm(graphs))
-        logger.debug("duplicate_rm: %d -> %d graphs (%.2fs)" % (count, len(graphs), time.time()-timenow))
         return graphs
 
     def _duplicate_rm(self,graphs):
@@ -360,7 +349,7 @@ class MYOPTIMIZER(object):
         for i,e in enumerate(costs[:,2]):
             nucol[i,2] = resdic[e]
         costs = np.hstack((costs, np.sum(nucol,axis =1).reshape(-1,1)))
-        logger.debug("costs: best dist: %f (%.2fs)" %  (np.min(costs[:,0]) ,time.time()-timenow))
+        logger.log(10, f"costs: best dist: {np.min(costs[:,0])} ({time.time()-timenow})")
         return costs
 
     def _get_neighbors(self, graph):
@@ -373,17 +362,14 @@ class MYOPTIMIZER(object):
         return neighs
 
     def _expand_neighbors(self, graphs):
-        timenow = time.time()
         global _decomposer ##### Stupid hack but I dont know how else to allow lambda functions in multiprocessing
         _decomposer = self.decomposer #####
         if self.multiproc>1:
             with multiprocessing.Pool(self.multiproc) as p:
                 res = list(concat(p.map(self._get_neighbors,graphs)))
-                logger.debug("graph generation: %.2fs" %  (time.time()-timenow))
                 return res
         else:
             res = list(concat(map(self._get_neighbors,graphs)))
-            logger.debug("graph generation: %.2fs" %  (time.time()-timenow))
             return res
 
 
@@ -398,14 +384,11 @@ class MYOPTIMIZER(object):
 
     def _expand_neighbors2(self, graphs): #
         """Only used with Cipselector Option 0. Replaces _expand_neighbors"""
-        timenow = time.time()
         if self.multiproc>1:
             with multiprocessing.Pool(self.multiproc) as p:
                 res = list(concat(p.map(self._get_score_substitution,graphs)))
-                logger.debug("graph generation: %.2fs" %  (time.time()-timenow))
         else:
             res = list(concat(map(self._get_score_substitution,graphs)))
-            logger.debug("graph generation: %.2fs" %  (time.time()-timenow))
         res.sort(reverse=True, key=lambda a: a[0])
         counter = 0
         grlist = []
@@ -499,10 +482,6 @@ class LocalLandmarksDistanceOptimizer(object):
         self.output_k_best = output_k_best
         self.decomposer = decomposer
         self.grammar = lsgg_size_hack(radii=core_sizes, thickness=context_size, core_vec_decomposer=decomposer, cipselector=cipselector, nodelevel_radius_and_thickness=True) #cip_root_all=False, half_step_distance=True)
-###        self.grammar = lsggold(nodelevel_radius_and_thickness=True) #cip_root_all=False, half_step_distance=True)
-##        self.grammar.radii = core_sizes #self.grammar.set_core_size(core_sizes)
-##        self.grammar.thickness = context_size #self.grammar.decomposition_args['thickness_list'] = [context_size]
-        #self.grammar.set_min_count(min_count) interfacecount 1 makes no sense
         self.grammar.filter_min_cip = min_count #self.grammar.filter_args['min_cip_count'] = min_count
         self.optiopts = kwargs
         self.cs2cs = cs2cs
