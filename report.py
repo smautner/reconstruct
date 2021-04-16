@@ -1,12 +1,25 @@
 import os
 from collections import defaultdict
-
 import numpy as np
 import pandas
-
 from maketasks import EXPERIMENT_REPEATS, params_graphs, tasklist
 from reconstruct2 import instancemakerparams, Optimizerparams, params_opt, tasklist, maketasks
 from util.util import jloadfile
+
+
+
+
+'''
+i should just be able to use loadblock... 
+'''
+
+
+
+
+
+
+
+
 elif sys.argv[1] == "report":
 report(resprefix, tasklist)
 elif sys.argv[1] == "reportchem":

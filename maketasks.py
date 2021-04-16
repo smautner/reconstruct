@@ -3,6 +3,9 @@ from reconstruct2 import maketasks
 from util import random_graphs as rg, rule_rand_graphs as rrg
 from util.util import dumpfile
 
+'''
+ok so 
+'''
 
 def make_task_file():
     import extensions.lsggscramble  as scram
